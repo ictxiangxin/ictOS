@@ -17,6 +17,7 @@
 #define _KFS_WRITE  0x1
 #define _KFS_EXTEND 0x0
 #define _KFS_ALLOC  0x1
+#define _KFS_DIR    0x0
 
 PRIVATE VOID  _init_fat32_arg();
 PRIVATE VOID  _init_fatcache();
@@ -33,9 +34,9 @@ PRIVATE VOID  _path_name(WORD* filepath, WORD* filename);
 PRIVATE VOID  _lname_to_sname(WORD* lname, BYTE* sname);
 PRIVATE DWORD _lname_real_length(WORD* lname);
 PRIVATE BYTE  _kfs_checksum(BYTE* sname);
-PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename);
+PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename, BYTE attr);
 PRIVATE VOID  _setup_lname_entry(LDIRENTRY* entry,DWORD number, WORD* filename, DWORD len, DWORD checksum);
-PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename);
+PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename, BYTE attr);
 PRIVATE POINTER _alloc_entry(DWORD dir_fat, DWORD sum);
 PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry);
 PRIVATE DWORD _find_file_lname(WORD* filepath, SDIRENTRY* entry);
@@ -97,7 +98,7 @@ PUBLIC VOID kfs_daemon()
         ict_done();
     _init_fat32_arg(); /* init fat32 arguments */
     ict_unlock(&lock);
-    WORD fn[30] = {'/', 't', 'e', 's', 't', '/', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'};
+    WORD fn[30] = {'/', 't', 'e', 's', 't', '/', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', '8'};
     //WORD fn[20] = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
 _kfs_create(fn, 0);
     FCB* fcb;
@@ -520,9 +521,6 @@ PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin)
 
 PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type)
 {
-/* need to test many file to check :
-    1. two same name files
-    2. so many file that one cluster can not contain */
     if(*filepath == '/')
         filepath++; /* clear '/' */
     SDIRENTRY _tmp_entry;
@@ -544,7 +542,7 @@ PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type)
         ict_free(tmp_filepath);
         return FALSE; /* no such dir */
     }
-    DWORD rst = _create_file_lname(dir_fat, filename);
+    DWORD rst = _create_file_lname(dir_fat, filename, type == _KFS_DIR ? ATTR_DIR : NULL);
     ict_free(tmp_filepath);
     return rst;
 }
@@ -585,6 +583,11 @@ PRIVATE VOID _lname_to_sname(WORD* lname, BYTE* sname)
     }
     for(; i < SNAME_LEN; i++)
         sname[i] = ' ';
+    if(len == SNAME_LEN)
+    {
+        sname[SNAME_LEN - 0x2] = '~';
+        sname[SNAME_LEN - 0x1] = '0';
+    }
 }
 
 PRIVATE DWORD _lname_real_length(WORD* lname)
@@ -610,7 +613,7 @@ PRIVATE BYTE _kfs_checksum(BYTE* sname)
     return checksum;
 }
 
-PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename)
+PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename, BYTE attr)
 {
     DWORD len = ict_ustrlen(filename);
     DWORD last_lname_len = len % LNAME_ENTRY_LEN;
@@ -620,6 +623,11 @@ PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename)
     if((entry = _alloc_entry(dir_fat, entry_sum)) == (POINTER)NONE)
         return FALSE;
     _lname_to_sname(filename, sname);
+    while(_search_file_in_dir_sname(dir_fat, sname, entry) == TRUE)
+        if(sname[SNAME_LEN - 0x1] == '9')
+            return FALSE; /* no more short name entry */
+        else
+            sname[SNAME_LEN - 0x1]++;
     DWORD checksum = _kfs_checksum(sname);
     DWORD i = 0x0;
     while(TRUE)
@@ -628,7 +636,7 @@ PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename)
         {
             last_lname_len = last_lname_len == 0x0 ? LNAME_ENTRY_LEN : last_lname_len;
             _setup_lname_entry((LDIRENTRY*)entry, (i + 0x1) | FLAG_END, filename + i * LNAME_ENTRY_LEN, last_lname_len, checksum);
-            _create_file_sname((SDIRENTRY*)entry + i + 0x1, sname);
+            _create_file_sname((SDIRENTRY*)entry + i + 0x1, sname, attr);
             _rw_cluster(tmp_fatnum, tmp_cluster, 0x1, _KFS_WRITE);
             return TRUE;
         }
@@ -682,13 +690,13 @@ no_12_13:
         entry->filename_12_13[i] = 0xffff;
 }
 
-PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename)
+PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename, BYTE attr)
 {
     DWORD start_fat;
     if((start_fat = _cluster_alloc(ROOT_FAT, 0x1, _KFS_ALLOC)) == NONE)
         return FALSE;
     ict_memcpy(filename, entry->filename, SNAME_LEN);
-    entry->attr = 0x0;
+    entry->attr = attr;
     entry->cluster_low = start_fat & 0xffff;
     entry->cluster_high = (start_fat >> 0x10) & 0xffff;
     entry->size = 0x0;

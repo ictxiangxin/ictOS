@@ -54,6 +54,7 @@
 #define KFS_WRITEOVER   0x0007
 #define KFS_SEEK        0x0008
 #define KFS_SEEKOVER    0x0009
+#define KFS_CREATE      0x000a
 
 /******************************************************************/
 /* signals of video service                                       */
