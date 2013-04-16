@@ -503,7 +503,11 @@ EXCEPT_XF:
     jmp     print_exception_error
 print_exception_error:  ; here is the exception report funtion
     cli
-    push    eax ; save eax, until we load it and save the vector number
+    pusha       ; -.
+    push    ds  ;  |
+    push    es  ;  | save all regs
+    push    fs  ;  |
+    push    gs  ; -'
     mov     ax, video_seg_selector  ; -. init the video segment register
     mov     gs, ax                  ; -'
     mov     ax, exception_report_selector   ; -.
@@ -517,55 +521,67 @@ print_exception_error:  ; here is the exception report funtion
     PortOut CRTCR_DATA, 0xff    ; set the high address of cursor location
     PortOut CRTCR_ADDR, CURSOR_LOW  ; tell the CRT we will set the low address of cursor location
     PortOut CRTCR_DATA, 0xff    ; set the low address of cursor location
-    pop     eax ; restore eax
-    mov     byte [VectorNumber - exception_report], al  ; save the vector number
-    push    edx ; save edx
-    mov     edx, 489    ; set the eax print loction
-    call    load_32reg  ; load the eax value into CrashMsg
-    pop     edx ; restore edx
+    pop     dword [SaveGS - exception_report]
+    pop     dword [SaveFS - exception_report]
+    pop     dword [SaveES - exception_report]
+    pop     dword [SaveDS - exception_report]
+    pop     dword [SaveEDI - exception_report]
+    pop     dword [SaveESI - exception_report]
+    pop     dword [SaveEBP - exception_report]
+    pop     dword [SaveESP - exception_report]
+    pop     dword [SaveEBX - exception_report]
+    pop     dword [SaveECX - exception_report]
+    pop     dword [SaveEDX - exception_report]
+    pop     dword [SaveEAX - exception_report]
     pop     dword [ErrorCode - exception_report]    ; get the error code and save it
     pop     dword [SaveEIP - exception_report]  ; get the eip and save it
     pop     dword [SaveCS - exception_report]   ; get the cs and save it
     pop     dword [SaveEFLAGS - exception_report]   ; get the eflags and save it
+    pop     dword [SaveESP - exception_report]
+    pop     dword [SaveSS - exception_report]
     mov     ax, stack_seg_selector  ; -.
     mov     ss, ax                  ;  | reset the stack and we use the kernel stack
     mov     esp, STACK_LIMIT        ; -'
-    mov     eax, edx    ; -.
-    mov     edx, 509    ;  | load the edx value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, ecx    ; -.
-    mov     edx, 529    ;  | load the ecx value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, ebx    ; -.
-    mov     edx, 549    ;  | load the ebx value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, esp    ; -.
-    mov     edx, 569    ;  | load the esp value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, ebp    ; -.
-    mov     edx, 589    ;  | load the ebp value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, esi    ; -.
-    mov     edx, 609    ;  | load the esi value into CrashMsg
-    call    load_32reg  ; -'
-    mov     eax, edi    ; -.
-    mov     edx, 629    ;  | load the edi value into CrashMsg
-    call    load_32reg  ; -'
-    mov     ax, es      ; -.
-    mov     edx, 728    ;  | load the es value into CrashMsg
-    call    load_16reg  ; -'
-    mov     ax, ss      ; -.
-    mov     edx, 743    ;  | load the ss value into CrashMsg
-    call    load_16reg  ; -'
-    mov     ax, ds      ; -.
-    mov     edx, 758    ;  | load the ds value into CrashMsg
-    call    load_16reg  ; -'
-    mov     ax, fs      ; -.
-    mov     edx, 773    ;  | load the fs value into CrashMsg
-    call    load_16reg  ; -'
-    mov     ax, gs      ; -.
-    mov     edx, 788    ;  | load the gs value into CrashMsg
-    call    load_16reg  ; -'
+    mov     eax, dword [SaveEAX - exception_report]
+    mov     byte [VectorNumber - exception_report], al  ; save the vector number
+    mov     edx, 489    ; set the eax print loction
+    call    load_32reg  ; load the eax value into CrashMsg
+    mov     eax, dword [SaveEDX - exception_report] ; -.
+    mov     edx, 509                                ;  | load the edx value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveECX - exception_report] ; -.
+    mov     edx, 529                                ;  | load the ecx value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveEBX - exception_report] ; -.
+    mov     edx, 549                                ;  | load the ebx value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveESP - exception_report] ; -.
+    mov     edx, 569                                ;  | load the esp value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveEBP - exception_report] ; -.
+    mov     edx, 589                                ;  | load the ebp value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveESI - exception_report] ; -.
+    mov     edx, 609                                ;  | load the esi value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     eax, dword [SaveEDI - exception_report] ; -.
+    mov     edx, 629                                ;  | load the edi value into CrashMsg
+    call    load_32reg                              ; -'
+    mov     ax,  word [SaveES - exception_report]   ; -.
+    mov     edx, 728                                ;  | load the es value into CrashMsg
+    call    load_16reg                              ; -'
+    mov     ax, word [SaveSS - exception_report]    ; -.
+    mov     edx, 743                                ;  | load the ss value into CrashMsg
+    call    load_16reg                              ; -'
+    mov     ax, word [SaveDS - exception_report]    ; -.
+    mov     edx, 758                                ;  | load the ds value into CrashMsg
+    call    load_16reg                              ; -'
+    mov     ax, word [SaveFS - exception_report]    ; -.
+    mov     edx, 773                                ;  | load the fs value into CrashMsg
+    call    load_16reg                              ; -'
+    mov     ax, word [SaveGS - exception_report]    ; -.
+    mov     edx, 788                                ;  | load the gs value into CrashMsg
+    call    load_16reg                              ; -'
     mov     eax, dword [SaveEFLAGS - exception_report]  ; -.
     mov     edx, 890                                    ;  | load the eflags value into CrashMsg
     call    load_reg_bit                                ; -'
@@ -613,7 +629,7 @@ load_msg:
     mul     bl  ; compute the right error msg offset
     add     eax, ErrorMsg - exception_report    ; eax point to the right error msg offset base on the seg
     mov     esi, eax    ; esi = eax
-    mov     edi, 0;322  ; load the error msg print location to edi
+    mov     edi, 322  ; load the error msg print location to edi
     add     edi, CrashMsg - exception_report    ; edi point to the right error msg location offset base on seg
     mov     ecx, 54 ; the string has 54 bytes
     rep     movsb   ; copy the error msg to right location
@@ -688,7 +704,20 @@ DTR_base  dd 0x0
 VectorNumber db 0x0
 ErrorCode    dd 0x0
 SaveEIP      dd 0x0
+SaveEAX      dd 0x0
+SaveEDX      dd 0x0
+SaveECX      dd 0x0
+SaveEBX      dd 0x0
+SaveESP      dd 0x0
+SaveEBP      dd 0x0
+SaveESI      dd 0x0
+SaveEDI      dd 0x0
 SaveCS       dd 0x0
+SaveSS       dd 0x0
+SaveDS       dd 0x0
+SaveES       dd 0x0
+SaveFS       dd 0x0
+SaveGS       dd 0x0
 SaveEFLAGS   dd 0x0
 
 ErrorMsg db \
@@ -714,9 +743,9 @@ ErrorMsg db \
 "[#XF] SIMD Float Exception !!!                        "
 
 CrashMsg db \
-"|==============================================================================|", \
-"|           ICT perfect 2.0 has crashed with a critical error !!!              |", \
-"|==============================================================================|", \
+"+==============================================================================+", \
+"|                               ictOS Crash !!!                                |", \
+"+==============================================================================+", \
 "                                                                                ", \
 "                                                        Error Code: 0x00000000  ", \
 "                                                                                ", \

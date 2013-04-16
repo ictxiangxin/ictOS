@@ -73,6 +73,8 @@ void testd()
     int s = 0;
     MSG m;
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
+    int* a = 0xffffffff;
+    *a = 0;
     while ( TRUE )
     {
         if ( send_msg ( 7, s, NULL, NULL ) )
