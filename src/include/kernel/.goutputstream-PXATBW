@@ -1,0 +1,9 @@
+/*================================================================================*/
+/*                    ICT Perfect 2.00 c type to machine type map                 */
+/*                                                                        by: ict */
+/*================================================================================*/
+
+#define BYTE	char
+#define WORD	unsigned short int
+#define DWORD	unsigned int
+

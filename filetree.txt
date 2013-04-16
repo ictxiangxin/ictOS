@@ -1,0 +1,55 @@
+src/
+├── app
+├── boot
+│   ├── bootblock.s
+│   └── sysboot.s
+├── include
+│   ├── boot
+│   │   ├── bootblock.inc
+│   │   └── sysboot.inc
+│   ├── fs
+│   │   └── fat32dbr.inc
+│   ├── io
+│   │   ├── ata.h
+│   │   ├── BIOScolor.h
+│   │   ├── BIOScolor.inc
+│   │   ├── i8042.h
+│   │   ├── i8254.h
+│   │   ├── i8259a.h
+│   │   ├── i8259a.inc
+│   │   └── VGAinfo.inc
+│   └── kernel
+│       ├── constent.h
+│       ├── daemon.h
+│       ├── ELFstruct.inc
+│       ├── intentry.inc
+│       ├── kasm.h
+│       ├── kproc.h
+│       ├── protect.inc
+│       ├── public.h
+│       ├── servers.h
+│       ├── sig.h
+│       ├── sysaddr.inc
+│       ├── sysldr.inc
+│       ├── sysldrmacro.inc
+│       └── type.h
+└── kernel
+    ├── intentry.s
+    ├── kasm.s
+    ├── kentry.s
+    ├── kernel.c
+    ├── klib
+    │   ├── basic.c
+    │   └── protect.c
+    ├── servers
+    │   ├── clock.c
+    │   ├── hd.c
+    │   ├── keyboard.c
+    │   ├── kfs.c
+    │   ├── kproc.c
+    │   ├── mem.c
+    │   ├── msg.c
+    │   └── video.c
+    └── sysldr.s
+
+10 directories, 42 files

@@ -1,0 +1,31 @@
+/*================================================================================*/
+/*                ICT Perfect 2.00 kernel proc managment contents                 */
+/*                                                                        by: ict */
+/*================================================================================*/
+#define PID_KPM	0x0
+#define PID_KB	0x1
+#define	PID_HDD	0x2
+
+#define PRIV_KPM	0x0
+#define PRIV_KB		0x4
+#define PRIV_HDD	0x2
+#define PRIV_KFS	0x2
+
+#define KPS_OK		0x0
+#define KPS_WAITMSG	0x1
+#define KPS_WAITINT	0x2
+#define KPS_SLEEP	0x3
+
+#define KP_CODE_BASE	0x0
+#define KP_CODE_LIMIT	0xfffff
+#define KP_DATA_BASE	0x0
+#define KP_DATA_LIMIT	0xfffff
+#define KP_STACK_BASE	0x0
+#define KP_STACK_LIMIT	0xfffff
+#define KP_VIDEO_BASE	0xb8000
+#define KP_VIDEO_LIMIT	0x7fff
+
+#define KP_CODE_LD_INDEX	0x0
+#define KP_DATA_LD_INDEX	0x1
+#define KP_STACK_LD_INDEX	0x2
+#define KP_VIDEO_LD_INDEX	0x3
