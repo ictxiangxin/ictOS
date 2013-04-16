@@ -8,7 +8,7 @@
 [section bootblock]
 [bits 16]
 
-    org	0x600
+    org 0x600
 
 boot_block:
     call    print
@@ -120,10 +120,10 @@ find_file:
     mov     al, FAT_BUFF_SIZE
     mov     word [BlockCount], ax
     mov     dl, byte [BOOT_OFFSET + DBR_DEVICE]
-	mov     ah, 0x42
+    mov     ah, 0x42
     push    si
     mov     si, DAP
-	int     0x13
+    int     0x13
     pop     si
     jc      load_error
 check_one_cluster:
@@ -228,9 +228,9 @@ load_fat_buff:
     mov     al, FAT_BUFF_SIZE
     mov     word [BlockCount], ax
     mov     dl, byte [BOOT_OFFSET + DBR_DEVICE]
-	mov     ah, 0x42
+    mov     ah, 0x42
     mov     si, DAP
-	int     0x13
+    int     0x13
     jc      load_error
 get_next_fat:
     mov     bx, word [CurrentFATNumber]
@@ -300,9 +300,9 @@ load_cluster:
     mov     al, byte [BOOT_OFFSET + DBR_SECTORS_PER_CLUSTER]
     mov     word [BlockCount], ax
     mov     dl, byte [BOOT_OFFSET + DBR_DEVICE]
-	mov     ah, 0x42
+    mov     ah, 0x42
     mov     si, DAP
-	int     0x13
+    int     0x13
     jc      load_error
     popa
     ret

@@ -52,11 +52,11 @@ load_boot_block:
     mov     word [BlockNumHigh + 0x2], dx
     mov     word [BufferOffset], BOOT_BLOCK_OFFSET
     mov     word [BlockCount], BOOT_BLOCK_SIZE
-	mov     dl, byte [dbr_device]
-	mov     ah, 0x42
+    mov     dl, byte [dbr_device]
+    mov     ah, 0x42
     mov     si, DAP
-	int     0x13
-	jnc     load_success
+    int     0x13
+    jnc     load_success
     cmp     ah, 0x80 ; time out ?
     je      load_error
     dec     di
