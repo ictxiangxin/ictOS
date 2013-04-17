@@ -10,6 +10,7 @@
 %include "sysldrmacro.inc"
 %include "sysldr.inc"
 %include "protect.inc"
+%include "crash.inc"
 
 [section real_mode]
 [bits 16]
@@ -430,76 +431,76 @@ load_idt:
 exception_report:
 EXCEPT_DE:
     push    0x0 ; this exception has not error code, and we set is zero
-    mov     eax, 0x0    ; set the vector number to al(eax)
+    push    0x0    ; set the vector number to al(eax)
     jmp     print_exception_error   ; goto main exception function
 EXCEPT_DB:
     push    0x0
-    mov     eax, 0x1
+    push    0x1
     jmp     print_exception_error
 EXCEPT_NMI:
     push    0x0
-    mov     eax, 0x2
+    push    0x2
     jmp     print_exception_error
 EXCEPT_INT3:
     push    0x0
-    mov     eax, 0x3
+    push    0x3
     jmp     print_exception_error
 EXCEPT_OF:
     push    0x0
-    mov     eax, 0x4
+    push    0x4
     jmp     print_exception_error
 EXCEPT_BR:
     push    0x0
-    mov     eax, 0x5
+    push    0x5
     jmp     print_exception_error
 EXCEPT_UD:
     push    0x0
-    mov     eax, 0x6
+    push    0x6
     jmp print_exception_error
 EXCEPT_NM:
     push    0x0
-    mov     eax, 0x7
+    push    0x7
     jmp     print_exception_error
 EXCEPT_DF:  ; here, this kind of exception has its error code, and we needn't set it
-    mov     eax, 0x8
+    push    0x8
     jmp     print_exception_error
 EXCEPT_CBR:
     push    0x0
-    mov     eax, 0x9
+    push    0x9
     jmp     print_exception_error
 EXCEPT_TS:
-    mov     eax, 0xa
+    push    0xa
     jmp     print_exception_error
 EXCEPT_NP:
-    mov     eax, 0xb
+    push    0xb
     jmp     print_exception_error
 EXCEPT_SS:
-    mov     eax, 0xc
+    push    0xc
     jmp     print_exception_error
 EXCEPT_GP:
-    mov     eax, 0xd
+    push    0xd
     jmp     print_exception_error
 EXCEPT_PF:
-    mov     eax, 0xe
+    push    0xe
     jmp     print_exception_error
 EXCEPT_RS:
     push    0x0
-    mov     eax, 0xf
+    push    0xf
     jmp     print_exception_error
 EXCEPT_MF:
     push    0x0
-    mov     eax, 0x10
+    push    0x10
     jmp     print_exception_error
 EXCEPT_AC:
-    mov     eax, 0x11
+    push    0x11
     jmp     print_exception_error
 EXCEPT_MC:
     push    0x0
-    mov     eax, 0x12
+    push    0x12
     jmp     print_exception_error
 EXCEPT_XF:
     push    0xc
-    mov     eax, 0x13
+    push    0x13
     jmp     print_exception_error
 print_exception_error:  ; here is the exception report funtion
     cli
@@ -521,129 +522,125 @@ print_exception_error:  ; here is the exception report funtion
     PortOut CRTCR_DATA, 0xff    ; set the high address of cursor location
     PortOut CRTCR_ADDR, CURSOR_LOW  ; tell the CRT we will set the low address of cursor location
     PortOut CRTCR_DATA, 0xff    ; set the low address of cursor location
-    pop     dword [SaveGS - exception_report]
-    pop     dword [SaveFS - exception_report]
-    pop     dword [SaveES - exception_report]
-    pop     dword [SaveDS - exception_report]
-    pop     dword [SaveEDI - exception_report]
-    pop     dword [SaveESI - exception_report]
-    pop     dword [SaveEBP - exception_report]
-    pop     dword [SaveESP - exception_report]
-    pop     dword [SaveEBX - exception_report]
-    pop     dword [SaveECX - exception_report]
-    pop     dword [SaveEDX - exception_report]
-    pop     dword [SaveEAX - exception_report]
+    pop     dword [SaveGS - exception_report]   ; -.
+    pop     dword [SaveFS - exception_report]   ;  |
+    pop     dword [SaveES - exception_report]   ;  |
+    pop     dword [SaveDS - exception_report]   ;  |
+    pop     dword [SaveEDI - exception_report]  ;  | move all regs from stack to
+    pop     dword [SaveESI - exception_report]  ;  | SAVE area
+    pop     dword [SaveEBP - exception_report]  ;  |
+    pop     dword [SaveESP - exception_report]  ;  |
+    pop     dword [SaveEBX - exception_report]  ;  |
+    pop     dword [SaveECX - exception_report]  ;  |
+    pop     dword [SaveEDX - exception_report]  ;  |
+    pop     dword [SaveEAX - exception_report]  ; -'
+    pop     dword [VectorNumber - exception_report]
     pop     dword [ErrorCode - exception_report]    ; get the error code and save it
     pop     dword [SaveEIP - exception_report]  ; get the eip and save it
     pop     dword [SaveCS - exception_report]   ; get the cs and save it
     pop     dword [SaveEFLAGS - exception_report]   ; get the eflags and save it
-    pop     dword [SaveESP - exception_report]
-    pop     dword [SaveSS - exception_report]
+    pop     dword [SaveESP - exception_report]  ; -. real esp and ss is here
+    pop     dword [SaveSS - exception_report]   ; -' 
     mov     ax, stack_seg_selector  ; -.
     mov     ss, ax                  ;  | reset the stack and we use the kernel stack
     mov     esp, STACK_LIMIT        ; -'
     mov     eax, dword [SaveEAX - exception_report]
-    mov     byte [VectorNumber - exception_report], al  ; save the vector number
-    mov     edx, 489    ; set the eax print loction
+    mov     edx, LOCATION_EAX   ; set the eax print loction
     call    load_32reg  ; load the eax value into CrashMsg
     mov     eax, dword [SaveEDX - exception_report] ; -.
-    mov     edx, 509                                ;  | load the edx value into CrashMsg
+    mov     edx, LOCATION_EDX                       ;  | load the edx value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveECX - exception_report] ; -.
-    mov     edx, 529                                ;  | load the ecx value into CrashMsg
+    mov     edx, LOCATION_ECX                       ;  | load the ecx value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveEBX - exception_report] ; -.
-    mov     edx, 549                                ;  | load the ebx value into CrashMsg
+    mov     edx, LOCATION_EBX                       ;  | load the ebx value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveESP - exception_report] ; -.
-    mov     edx, 569                                ;  | load the esp value into CrashMsg
+    mov     edx, LOCATION_ESP                       ;  | load the esp value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveEBP - exception_report] ; -.
-    mov     edx, 589                                ;  | load the ebp value into CrashMsg
+    mov     edx, LOCATION_EBP                       ;  | load the ebp value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveESI - exception_report] ; -.
-    mov     edx, 609                                ;  | load the esi value into CrashMsg
+    mov     edx, LOCATION_ESI                       ;  | load the esi value into CrashMsg
     call    load_32reg                              ; -'
     mov     eax, dword [SaveEDI - exception_report] ; -.
-    mov     edx, 629                                ;  | load the edi value into CrashMsg
+    mov     edx, LOCATION_EDI                       ;  | load the edi value into CrashMsg
     call    load_32reg                              ; -'
-    mov     ax,  word [SaveES - exception_report]   ; -.
-    mov     edx, 728                                ;  | load the es value into CrashMsg
+    mov     ax, word [SaveES - exception_report]    ; -.
+    mov     edx, LOCATION_ES                        ;  | load the es value into CrashMsg
     call    load_16reg                              ; -'
     mov     ax, word [SaveSS - exception_report]    ; -.
-    mov     edx, 743                                ;  | load the ss value into CrashMsg
+    mov     edx, LOCATION_SS                        ;  | load the ss value into CrashMsg
     call    load_16reg                              ; -'
     mov     ax, word [SaveDS - exception_report]    ; -.
-    mov     edx, 758                                ;  | load the ds value into CrashMsg
+    mov     edx, LOCATION_DS                        ;  | load the ds value into CrashMsg
     call    load_16reg                              ; -'
     mov     ax, word [SaveFS - exception_report]    ; -.
-    mov     edx, 773                                ;  | load the fs value into CrashMsg
+    mov     edx, LOCATION_FS                        ;  | load the fs value into CrashMsg
     call    load_16reg                              ; -'
     mov     ax, word [SaveGS - exception_report]    ; -.
-    mov     edx, 788                                ;  | load the gs value into CrashMsg
+    mov     edx, LOCATION_GS                        ;  | load the gs value into CrashMsg
     call    load_16reg                              ; -'
     mov     eax, dword [SaveEFLAGS - exception_report]  ; -.
-    mov     edx, 890                                    ;  | load the eflags value into CrashMsg
+    mov     edx, LOCATION_EFLAGS                        ;  | load the eflags value into CrashMsg
     call    load_reg_bit                                ; -'
-    mov     eax, cr0        ; -.
-    mov     edx, 1047       ;  | load the cr0 value into CrashMsg
-    call    load_reg_bit    ; -'
-    mov     eax, cr2        ; -.
-    mov     edx, 1127       ;  | load the cr2 value into CrashMsg
-    call    load_reg_bit    ; -'
-    mov     eax, cr3        ; -.
-    mov     edx, 1207       ;  | load the cr3 value into CrashMsg
-    call    load_reg_bit    ; -'
+    mov     eax, cr0            ; -.
+    mov     edx, LOCATION_CR0   ;  | load the cr0 value into CrashMsg
+    call    load_reg_bit        ; -'
+    mov     eax, cr2            ; -.
+    mov     edx, LOCATION_CR2   ;  | load the cr2 value into CrashMsg
+    call    load_reg_bit        ; -'
+    mov     eax, cr3            ; -.
+    mov     edx, LOCATION_CR3   ;  | load the cr3 value into CrashMsg
+    call    load_reg_bit        ; -'
     sgdt    [DTR_struct - exception_report] ; save the GDTR to [DTR_struct]
     mov     eax, dword [DTR_base - exception_report]    ; -.
-    mov     edx, 1456                                   ;  | load the gdtr base value into CrashMsg
+    mov     edx, LOCATION_GDTR_BASE                     ;  | load the gdtr base value into CrashMsg
     call    load_32reg                                  ; -'
     mov     ax, word [DTR_limit - exception_report] ; -.
-    mov     edx, 1476                               ;  | load the gdtr limit value into CrashMsg
+    mov     edx, LOCATION_GDTR_LIMIT                ;  | load the gdtr limit value into CrashMsg
     call    load_16reg                              ; -'
     sidt    [DTR_struct - exception_report] ; save the IDTR to [DTR_struct]
     mov     eax, dword [DTR_base - exception_report]    ; -.
-    mov     edx, 1536                                   ;  | load the idtr base value into CrashMsg
+    mov     edx, LOCATION_IDTR_BASE                     ;  | load the idtr base value into CrashMsg
     call    load_32reg                                  ; -'
     mov     ax, word [DTR_limit - exception_report] ; -.
-    mov     edx, 1556                               ;  | load the idtr limit value into CrashMsg
+    mov     edx, LOCATION_IDTR_LIMIT                ;  | load the idtr limit value into CrashMsg
     call    load_16reg                              ; -'
     mov     ax, word [SaveCS - exception_report]    ; -.
-    mov     edx, 1688                               ;  | load the cs value into CrashMsg
+    mov     edx, LOCATION_CS                        ;  | load the cs value into CrashMsg
     call    load_16reg                              ; -'
     mov     eax, dword [SaveEIP - exception_report] ; -.
-    mov     edx, 1704                               ;  | load the eip value into CrashMsg
+    mov     edx, LOCATION_EIP                       ;  | load the eip value into CrashMsg
     call    load_32reg                              ; -'
     xor     eax, eax    ; clear eax, for next we only use al
     mov     al, byte [VectorNumber - exception_report]  ; al = vector number
     call    load_msg    ; according to the al, we can load the right error msg into CrashMsg
     mov     eax, dword [ErrorCode - exception_report]   ; -.
-    mov     edx, 389                                    ;  | load the error code into CrashMsg
+    mov     edx, LOCATION_ERROR_CODE                    ;  | load the error code into CrashMsg
     call    load_32reg                                  ; -'
     mov     esi, CrashMsg - exception_report    ; esi point to the CrashMsg
     call    print_crash_msg ; print the CrashMsg, and we can see a "blue screen"
     jmp     $   ; stop in here
 
 load_msg:
-    mov     bl, 54  ; each error msg has 54 bytes
+    mov     bl, ERROR_MSG_LEN   ; each error msg has 54 bytes
     mul     bl  ; compute the right error msg offset
     add     eax, ErrorMsg - exception_report    ; eax point to the right error msg offset base on the seg
     mov     esi, eax    ; esi = eax
-    mov     edi, 322  ; load the error msg print location to edi
+    mov     edi, LOCATION_ERROR_MSG ; load the error msg print location to edi
     add     edi, CrashMsg - exception_report    ; edi point to the right error msg location offset base on seg
-    mov     ecx, 54 ; the string has 54 bytes
+    mov     ecx, ERROR_MSG_LEN ; the string has 54 bytes
     rep     movsb   ; copy the error msg to right location
     ret     ; function end
 
 load_32reg:
-    push    edi ; -. save the edi and ecx
-    push    ecx ; -'
     mov     ecx, 0x8    ; 32reg has 8 bytes
     mov     edi, 0x8    ; the last char is offset 8
     jmp     load_reg_start  ; go to load the reg value
 load_16reg:
-    push    edi ; -. save the edi and ecx
-    push    ecx ; -'
     mov     ecx, 0x4    ; 16reg has 4 bytes
     mov     edi, 0x4    ; the last char is offset 4
 load_reg_start:
@@ -662,8 +659,6 @@ load_reg_num:
     mov     dl, al  ; copy al to dl
     and     dl, 00001111b   ; mask high 4-bit
     loop    load_reg_byte   ; go on load the next 4-bit
-    pop     ecx ; -. restore the edi and ecx
-    pop     edi ; -'
     ret ; function end
 
 load_reg_bit:
@@ -701,7 +696,7 @@ DTR_struct:
 DTR_limit dw 0x0
 DTR_base  dd 0x0
 
-VectorNumber db 0x0
+VectorNumber dd 0x0
 ErrorCode    dd 0x0
 SaveEIP      dd 0x0
 SaveEAX      dd 0x0
@@ -741,6 +736,8 @@ ErrorMsg db \
 "[#AC] Aligment Check !!!                              ", \
 "[#MC] Machine Check !!!                               ", \
 "[#XF] SIMD Float Exception !!!                        "
+
+bug:    times   0x10    db 0x0 ; here is a bug that i can't find it.
 
 CrashMsg db \
 "+==============================================================================+", \
