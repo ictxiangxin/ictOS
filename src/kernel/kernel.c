@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                            ICT Perfect 2.00 kernel                             */
+/*                                ictOS kernel Main                               */
 /*                                                                        by: ict */
 /*================================================================================*/
 #include "kasm.h"
@@ -50,13 +50,14 @@ void testc()
         if ( m.sig == 32 )
             y = y == 79 ? 79 : y + 1;
         msg_dropchar ( c, color, x, y );
+        msg_dropchar ( c, color, y, x );
         color = ++color % 0xf + 1;
         c++;
         if ( c > '9' )
             c = '0';
         if ( m.sig )
             continue;
-        for ( i = 0; i < 3000000; i++ );
+        for ( i = 0; i < 300000; i++ );
     }
 }
 
@@ -71,7 +72,7 @@ void testd()
     {
         if ( send_msg ( 7, s, NULL, NULL ) )
             s++;
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -85,9 +86,7 @@ void teste()
     {
         recv_msg ( &m );
         ict_cprintf ( COLOR_MAGENTA, "_%d_", m.sig );
-        //return_msg(&m, 8, 1);
-        //ict_cprintf ( COLOR_RED, "\"%d\"", m.data );
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -110,11 +109,12 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
-        buff[0] = p;
-        ict_hdwrite(0x500, 1, 0, buff);
-        ict_hdread(0x500, 1, 0, buff);
-        ict_cprintf(COLOR_RED, "[%d]", buff[0]);
-        for ( i = 0; i < 100000000; i++ );
+        //buff[0] = p;
+        //ict_hdwrite(0x500, 1, 0, buff);
+        //buff[0] =0;
+        //ict_hdread(0x500, 1, 0, buff);
+        //ict_cprintf(COLOR_RED, "[%d]", buff[0]);
+        for ( i = 0; i < 10000000; i++ );
     }
 }
 
@@ -136,10 +136,10 @@ PUBLIC VOID kernel()
 {
     init_video(); /* init video server */
     init_mem();   /* init memory management */
-    init_msg();   /* init the msg pool */
-    init_clock(); /* init the clock server */
-    init_kb();    /* init the keyboard server */
-    init_hd();    /* init the hard disk server */
+    init_msg();   /* init msg service */
+    init_clock(); /* init clock service */
+    init_kb();    /* init keyboard service */
+    init_hd();    /* init hard disk service */
     create_service_deamon(); /* create system service daemon */
     //add_kernelproc ( testb, 4 );
     add_kernelproc ( testc, 1 );

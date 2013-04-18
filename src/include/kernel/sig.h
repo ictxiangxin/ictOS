@@ -41,10 +41,8 @@
 /******************************************************************/
 #define HD_READ      0x0001 /* request read data from disk to buff */
 #define HD_WRITE     0x0002 /* request write data from buff to disk */
-#define HD_READSUCC  0x0003 /* return a sig to requst proc that read successfully */
-#define HD_WRITESUCC 0x0004 /* return a sig to requst proc that write successfully */
-#define HD_READERR   0x0005 /* return a sig to requst proc that read error*/
-#define HD_WRITEERR  0x0006 /* return a sig to requst proc that write error */
+#define HD_READOVER  0x0003 /* read over */
+#define HD_WRITEOVER 0x0004 /* write over */
 
 /******************************************************************/
 /* signals of kernel file system                                  */

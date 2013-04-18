@@ -16,6 +16,7 @@ PRIVATE DBR*      fat32dbr;
 PRIVATE DWORD     fat1offset;
 PRIVATE DWORD     fat2offset;
 PRIVATE DWORD     dataoffset;
+PRIVATE DWORD     rootfat;
 
 PRIVATE BYTE* tmp_sector;
 
@@ -71,6 +72,10 @@ PRIVATE VOID init_fatcache()
         fatcache[i].id = i;
         fatcache[i].time = 0x0;
     }
+}
+
+PRIVATE DWORD _kfs_open(BYTE* filepath)
+{
 }
 
 

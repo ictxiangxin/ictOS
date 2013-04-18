@@ -1,21 +1,34 @@
 /*================================================================================*/
-/*                 ICT Perfect 2.00 kernel mode string functions                  */
+/*                           ictOS basic useful functions                         */
 /*                                                                        by: ict */
 /*================================================================================*/
 
-char* ict_strcpy(char* scr, char* des)
+PUBLIC BYTE* ict_strcpy(BYTE* src, BYTE* des)
 {
-	char* tmp_s = scr;
-	char* tmp_d = des;
-	while((*tmp_d++ = *tmp_s++) != '\0');
-	*tmp_d = '\0';
+	while((*des++ = *src++) != '\0');
+	*des = '\0';
 	return des;
 }
 
-char* ict_strcpyl(char* scr, char* des, int len)
+PUBLIC BYTE* ict_strcpyl(BYTE* src, BYTE* des, DWORD len)
 {
-	int i;
+	DWORD i;
 	for(i = 0; i < len; i++)
 		des[i] = scr[i];
 	return des;
+}
+
+PUBLIC DWORD ict_strcmp(BYTE* str1, BYTE* str2)
+{
+    while(*str1++ == *str2++);
+    return *--str1 == NULL;
+}
+
+PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
+{
+    DWORD i;
+    for(i = 0; i < len; i++)
+        if(str1[i] != str2[i])
+            return FALSE;
+    return TRUE;
 }

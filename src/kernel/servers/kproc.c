@@ -187,7 +187,7 @@ PUBLIC VOID ict_waitint()
 /******************************************************************/
 PUBLIC VOID ict_intfor ( DWORD kpid )
 {
-    if(kernelproclist.procs[kpid].haveint == FALSE)
+    if(kernelproclist.procs[kpid].status == KPS_WAITINT)
         if(!ict_lock(&(kernelproclist.procs[kpid].statuslock)))
         {
             kernelproclist.procs[kpid].status = KPS_OK;

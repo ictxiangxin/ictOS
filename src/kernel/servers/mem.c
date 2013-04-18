@@ -62,7 +62,7 @@ PUBLIC POINTER ict_malloc(DWORD size)
     }
     MSG m;
     send_msg(PID_MEM, MEM_MALLOC, (DWORD)size, NULL);
-    recv_msg(&m);
+    return_msg(&m, PID_MEM, MEM_ANS);
     return (POINTER)m.data;
 }
 
@@ -79,7 +79,7 @@ PUBLIC DWORD ict_free(POINTER addr)
     }
     MSG m;
     send_msg(PID_MEM, MEM_FREE, (DWORD)addr, NULL);
-    recv_msg(&m);
+    return_msg(&m, PID_MEM, MEM_ANS);
     return m.data;
 }
 
@@ -130,6 +130,7 @@ PUBLIC DWORD ict_idlesize()
 PUBLIC VOID mem_daemon()
 {
     MSG m;
+    DWORD tmp;
     while(TRUE)
     {
         recv_msg(&m);
@@ -138,13 +139,16 @@ PUBLIC VOID mem_daemon()
         switch(m.sig)
         {
         case MEM_MALLOC :
-            send_msg(m.sproc_id, MEM_ANS, _ict_malloc(m.data), NULL);
+            tmp = (DWORD)_ict_malloc(m.data);
+            send_msg(m.sproc_id, MEM_ANS, tmp, NULL);
             break;
         case MEM_FREE :
-            send_msg(m.sproc_id, MEM_ANS, _ict_free((POINTER)m.data), NULL);
+            tmp = _ict_free((POINTER)m.data);
+            send_msg(m.sproc_id, MEM_ANS, tmp, NULL);
             break;
         case MEM_IDLE :
-            send_msg(m.sproc_id, MEM_ANS, _ict_idlesize(), NULL);
+            tmp = _ict_idlesize();
+            send_msg(m.sproc_id, MEM_ANS, tmp, NULL);
             break;
         }
         dest_msg ( &m );

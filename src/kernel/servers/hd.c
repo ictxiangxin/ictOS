@@ -30,9 +30,7 @@ PRIVATE DWORD _hd_write(ATADATA *pd);
 /******************************************************************/
 PUBLIC VOID init_hd()
 {
-    //ict_cprintf(COLOR_YELLOW, "Setup hard disk service...      ");
     ict_setupint(0x2e, hd_interrupt);   /* setup the ata interrupt handle */
-    //ict_cprintf(COLOR_YELLOW, "[ OK ]\n");
 }
 
 /******************************************************************/
@@ -51,18 +49,10 @@ PUBLIC VOID hd_daemon()
         {
             case HD_READ :
                 err = _hd_read((ATADATA*)m.data);
-                if(err)
-                    send_msg(m.sproc_id, HD_READERR, err, NULL);
-                else
-                    send_msg(m.sproc_id, HD_READSUCC, NULL, NULL);
-                break;
+                send_msg(m.sproc_id, HD_READOVER, err, NULL);
             case HD_WRITE :
                 err = _hd_write((ATADATA*)m.data);
-                if(err)
-                    send_msg(m.sproc_id, HD_WRITEERR, err, NULL);
-                else
-                    send_msg(m.sproc_id, HD_WRITESUCC, NULL, NULL);
-                break;
+                send_msg(m.sproc_id, HD_WRITEOVER, err, NULL);
         }
         dest_msg ( &m );
         ict_unlock(&lock);
@@ -111,7 +101,6 @@ PRIVATE VOID wait_hd()
 PRIVATE DWORD _ict_handle(DWORD sector_num, DWORD sector_sum, DWORD device, POINTER buff, DWORD handle)
 {
     ATADATA ata;
-    access_kpid = current_proc->id;
     ata.secnum = sector_num;
     ata.seccnt = sector_sum;
     ata.device = device;
@@ -124,7 +113,7 @@ PRIVATE DWORD _ict_handle(DWORD sector_num, DWORD sector_sum, DWORD device, POIN
     }
     MSG m;
     send_msg(PID_HD, handle == _HD_READ ? HD_READ : HD_WRITE, (DWORD)&ata, sizeof(ATADATA));
-    recv_msg(&m);
+    return_msg(&m, PID_HD, handle == _HD_READ ? HD_READOVER : HD_WRITEOVER);
     return m.data;
 }
 
@@ -134,6 +123,7 @@ PRIVATE DWORD _ict_handle(DWORD sector_num, DWORD sector_sum, DWORD device, POIN
 PRIVATE DWORD _hd_read(ATADATA *pd)
 {
     wait_hd();
+    access_kpid = current_proc->id;
     ict_out(DEV_PORT(ATA_P_DEVICECONTROL), 0x0);
     ict_out(DEV_PORT(ATA_P_SECTORCOUNT), pd->seccnt >= 0x100 ? 0x0 : pd->seccnt);
     ict_out(DEV_PORT(ATA_P_LBALOW), pd->secnum & 0xff);
@@ -157,6 +147,7 @@ PRIVATE DWORD _hd_read(ATADATA *pd)
 PRIVATE DWORD _hd_write(ATADATA *pd)
 {
     wait_hd();
+    access_kpid = current_proc->id;
     ict_out(DEV_PORT(ATA_P_DEVICECONTROL), 0x0);
     ict_out(DEV_PORT(ATA_P_SECTORCOUNT), pd->seccnt >= 0x100 ? 0x0 : pd->seccnt);
     ict_out(DEV_PORT(ATA_P_LBALOW), pd->secnum & 0xff);
