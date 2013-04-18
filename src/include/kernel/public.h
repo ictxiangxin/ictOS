@@ -182,6 +182,7 @@ typedef struct filedescription
 typedef struct fatblock
 {
     DWORD id;
+    DWORD time;
     BYTE  data[FAT_BLOCK_SIZE];
 } FATBLOCK;
 
