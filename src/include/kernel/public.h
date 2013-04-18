@@ -137,14 +137,15 @@ typedef struct kproc
 
     LDT procldt;
 
-    BYTE id;
-    BYTE present;
-    BYTE state;
+    DWORD id;
+    DWORD present;
+    DWORD status;
+    DWORD statuslock;
 
     MSGBUF* msgentry;
-    BYTE    msglock;
-    BYTE    havemsg;
-    BYTE    haveint;
+    DWORD   msglock;
+    DWORD   havemsg;
+    DWORD   haveint;
 
     DWORD priv;
     DWORD count;

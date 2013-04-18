@@ -50,6 +50,7 @@ PUBLIC VOID    init_msg();
 PUBLIC VOID    msgbuf_hook(DWORD proc_id);
 PUBLIC DWORD   send_msg(DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasize);
 PUBLIC DWORD   read_msg(MSG* msg);
+PUBLIC DWORD   search_msg(MSG* msg, DWORD src_proc_id, DWORD sig);
 PUBLIC VOID    recv_msg(MSG* msg);
 PUBLIC VOID    clear_msg();
 PUBLIC BYTE    have_msg();

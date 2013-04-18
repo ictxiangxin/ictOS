@@ -15,21 +15,12 @@
 
 void testb()
 {
-    //ict_sleep();
-    int i = 0;
-    int init = 0;
     MSG m;
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     while ( TRUE )
     {
         send_msg ( PID_KB, KB_KEY, NULL, NULL );
         recv_msg ( &m );
-        if ( m.sig == 0x1c && init == 0 )
-        {
-            send_msg ( 3, 0, NULL, NULL );
-            init = 1;
-        }
-        ict_cprintf ( COLOR_LIGHTCYAN, "[%x]", m.sig );
     }
 }
 
@@ -94,6 +85,8 @@ void teste()
     {
         recv_msg ( &m );
         ict_cprintf ( COLOR_MAGENTA, "_%d_", m.sig );
+        //return_msg(&m, 8, 1);
+        //ict_cprintf ( COLOR_RED, "\"%d\"", m.data );
         for ( i = 0; i < 10000000; i++ );
     }
 }
@@ -116,6 +109,7 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
+        send_msg(7, 1, 828, 0);
         for ( i = 0; i < 100000000; i++ );
     }
 }

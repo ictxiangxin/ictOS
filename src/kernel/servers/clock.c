@@ -53,7 +53,7 @@ PUBLIC VOID int_clock ( POINTER regs )
         do	/* this loop is to choose the best proc */
         {
             t_p = t_p->next;	/* test the next proc */
-            if ( t_p->state != KPS_OK )
+            if ( t_p->status != KPS_OK )
                 continue;
             /* when one proc's final privilege is bigger than the scheduled proc,
                replace the old one.and if one proc's final privilege is equal to
@@ -80,7 +80,7 @@ PUBLIC VOID int_clock ( POINTER regs )
         {
             t_p = t_p->next;	/* change the next proc's hungry status */
             if ( t_p != s_p )	/* if this proc is not scheduled proc */
-                if ( t_p->state == KPS_OK )
+                if ( t_p->status == KPS_OK )
                     t_p->hung++;	/* make it more hungry */
                 else	/* so, this is the scheduled proc */
                     t_p->hung = 1;	/* it is full now */
