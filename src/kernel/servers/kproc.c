@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                    ICT Perfect 2.00 kernel proc managment                      */
+/*                            ictOS kernel proc managment                         */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -169,7 +169,7 @@ PUBLIC VOID ict_wakeup ( DWORD kpid )
 /******************************************************************/
 PUBLIC VOID ict_waitint()
 {
-    if ( !have_int() )	/* if no int before */
+    if ( !have_int() )
     {
         if(!ict_lock(&(kernelproclist.procs[current_proc->id].statuslock)))
         {

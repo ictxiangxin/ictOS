@@ -97,6 +97,7 @@ void testf()
     int p = 0;
     char sb[] = {'-', '\\', '|', '/'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
+    char buff[0x200];
     while ( TRUE )
     {
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 11, 70 );
@@ -109,7 +110,10 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
-        send_msg(7, 1, 828, 0);
+        buff[0] = p;
+        ict_hdwrite(0x500, 1, 0, buff);
+        ict_hdread(0x500, 1, 0, buff);
+        ict_cprintf(COLOR_RED, "[%d]", buff[0]);
         for ( i = 0; i < 100000000; i++ );
     }
 }
@@ -120,7 +124,7 @@ void create_service_deamon()
     add_kernelproc ( mem_daemon, PRIV_MEM ); /* kpid: 1 */
     add_kernelproc ( keyboard_daemon, PRIV_KB ); /* kpid: 2 */
     add_kernelproc ( hd_daemon, PRIV_HD ); /* kpid: 3 */
-    add_kernelproc ( video_daemon, PRIV_VD ); /* kpid: 3 */
+    add_kernelproc ( video_daemon, PRIV_VD ); /* kpid: 4 */
 }
 
 PUBLIC KPROC* current_proc;

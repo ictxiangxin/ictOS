@@ -15,6 +15,9 @@
 #define _HD_READ    0x1
 #define _HD_WRITE   0x2
 
+PUBLIC KPROC* current_proc;
+
+PRIVATE DWORD access_kpid;
 PRIVATE DWORD lock = FALSE;
 
 PRIVATE VOID wait_hd();
@@ -42,6 +45,8 @@ PUBLIC VOID hd_daemon()
     while(TRUE)
     {
         recv_msg(&m);
+        while(!ict_lock(&lock))
+            ict_done();
         switch(m.sig)   /* msg loop */
         {
             case HD_READ :
@@ -60,6 +65,7 @@ PUBLIC VOID hd_daemon()
                 break;
         }
         dest_msg ( &m );
+        ict_unlock(&lock);
     }
 }
 
@@ -69,7 +75,7 @@ PUBLIC VOID hd_daemon()
 PUBLIC VOID int_hd()
 {
     ict_in(ATA_P_STATUS);
-    ict_intfor(PID_HD);
+    ict_intfor(access_kpid);
 }
 
 /******************************************************************/
@@ -105,11 +111,12 @@ PRIVATE VOID wait_hd()
 PRIVATE DWORD _ict_handle(DWORD sector_num, DWORD sector_sum, DWORD device, POINTER buff, DWORD handle)
 {
     ATADATA ata;
+    access_kpid = current_proc->id;
     ata.secnum = sector_num;
     ata.seccnt = sector_sum;
     ata.device = device;
     ata.buff   = buff;
-    if(!ict_lock(&lock)) /* test and lock */
+    if(!ict_lock(&lock))
     {
         DWORD err = handle == _HD_READ ? _hd_read(&ata) : _hd_write(&ata);
         ict_unlock(&lock);

@@ -62,10 +62,10 @@ PUBLIC VOID recv_msg ( MSG* msg )
 {
     if ( have_msg() == FALSE ) /* if there are no msg */
     {
-        if(!ict_lock(&(kernelproclist.procs[current_proc->id].statuslock)))
+        if(!ict_lock(&(current_proc->statuslock)))
         {
-            kernelproclist.procs[current_proc->id].status = KPM_WAITMSG;
-            ict_unlock(&(kernelproclist.procs[current_proc->id].statuslock));
+            current_proc->status = KPM_WAITMSG;
+            ict_unlock(&(current_proc->statuslock));
         }
         else
             send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
@@ -81,10 +81,10 @@ PUBLIC VOID return_msg(MSG* msg, DWORD src_proc_id, DWORD sig)
 {
     if ( have_msg() == FALSE ) /* if there are no msg */
     {
-        if(!ict_lock(&(kernelproclist.procs[current_proc->id].statuslock)))
+        if(!ict_lock(&(current_proc->statuslock)))
         {
-            kernelproclist.procs[current_proc->id].status = KPM_WAITMSG;
-            ict_unlock(&(kernelproclist.procs[current_proc->id].statuslock));
+            current_proc->status = KPM_WAITMSG;
+            ict_unlock(&(current_proc->statuslock));
         }
         else
             send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
@@ -283,15 +283,15 @@ PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasiz
 /******************************************************************/
 PUBLIC DWORD read_msg ( MSG* msg )
 {
-    while(ict_lock(&(kernelproclist.procs[current_proc->id].msglock)))
+    while(ict_lock(&(current_proc->msglock)))
         ict_done();
     /* entry point to the this proc msg hook start */
-    MSGBUF* entry = kernelproclist.procs[current_proc->id].msgentry;
+    MSGBUF* entry = current_proc->msgentry;
     MSGBUF* temp_ent = entry; /* temp pointer for next loop */
     if ( temp_ent->read_p == EMPTY_READ_P ) /* if the buf is empty */
     {
         null_msg(msg);
-        ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+        ict_unlock(&(current_proc->msglock));
         return FALSE; /* read fail, and return false */
     }
     /* if execute here, it means it find a buf that has msg */
@@ -306,9 +306,9 @@ PUBLIC DWORD read_msg ( MSG* msg )
         temp_ent->read_p = EMPTY_READ_P; /* the buf is empty now, and set the read_p to -1 */
         msgbuf_drop ( current_proc->id ); /* drop the empty buf to msg pool */
     }
-    if ( kernelproclist.procs[current_proc->id].msgentry->read_p == EMPTY_READ_P ) /* if the all msgs have been read */
-        kernelproclist.procs[current_proc->id].havemsg = FALSE; /* clear the flag of "have msg" */
-    ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+    if ( current_proc->msgentry->read_p == EMPTY_READ_P ) /* if the all msgs have been read */
+        current_proc->havemsg = FALSE; /* clear the flag of "have msg" */
+    ict_unlock(&(current_proc->msglock));
     if(msg->sproc_id == NULL && msg->dproc_id == NULL && msg->sig == NULL) /* this is a useless msg */
         read_msg(msg);  /* read next msg */
     return TRUE; /* it means this function execute perfect */
@@ -319,16 +319,16 @@ PUBLIC DWORD read_msg ( MSG* msg )
 /******************************************************************/
 PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
 {
-    while(ict_lock(&(kernelproclist.procs[current_proc->id].msglock)))
+    while(ict_lock(&(current_proc->msglock)))
         ict_done();
     /* entry point to the this proc msg hook start */
-    MSGBUF* entry = kernelproclist.procs[current_proc->id].msgentry;
+    MSGBUF* entry = current_proc->msgentry;
     MSGBUF* temp_ent = entry; /* temp pointer for next loop */
     DWORD   temp_read_p = temp_ent->read_p;
     if(temp_read_p == EMPTY_READ_P)
     {
         null_msg(msg);
-        ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+        ict_unlock(&(current_proc->msglock));
         return FALSE; /* search fail, and return false */
     }
     while(temp_ent->msglist[temp_read_p].sproc_id != src_proc_id || temp_ent->msglist[temp_read_p].sig != sig)
@@ -340,7 +340,7 @@ PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
             if(temp_ent->next == entry)
             {
                 null_msg(msg);
-                ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+                ict_unlock(&(current_proc->msglock));
                 return FALSE; /* search fail, and return false */
             }
             temp_ent = temp_ent->next;
@@ -353,7 +353,7 @@ PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
     temp_ent->msglist[temp_read_p].sproc_id = NULL;
     temp_ent->msglist[temp_read_p].dproc_id = NULL;
     temp_ent->msglist[temp_read_p].sig = NULL;
-    ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+    ict_unlock(&(current_proc->msglock));
     return TRUE;
 }
 
@@ -362,10 +362,10 @@ PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
 /******************************************************************/
 PUBLIC VOID clear_msg()
 {
-    while(ict_lock(&(kernelproclist.procs[current_proc->id].msglock)))
+    while(ict_lock(&(current_proc->msglock)))
         ict_done();
     /* entry point to the this proc msg hook start */
-    MSGBUF* entry = kernelproclist.procs[current_proc->id].msgentry;
+    MSGBUF* entry = current_proc->msgentry;
     MSGBUF* temp_ent = entry; /* temp pointer for next loop */
     MSGBUF* next_ent = entry->next; /* next pointer for next loop */
     while ( next_ent != entry ) /* if exist another buf in this hook list */
@@ -380,7 +380,7 @@ PUBLIC VOID clear_msg()
     entry->next = entry; /* only reserve one buf */
     entry->read_p = EMPTY_READ_P; /* reset the read pointer */
     entry->write_p = EMPTY_WRITE_P; /* reset the write pointer */
-    ict_unlock(&(kernelproclist.procs[current_proc->id].msglock));
+    ict_unlock(&(current_proc->msglock));
 }
 
 /******************************************************************/
