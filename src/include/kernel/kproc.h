@@ -8,13 +8,13 @@
 #define PID_KPM             0x0
 #define PID_MEM             0x1
 #define PID_KB              0x2
-#define PID_HDD             0x3
+#define PID_HD              0x3
 #define PID_VD              0x4
 
 #define PRIV_KPM            0x0
 #define PRIV_MEM            0x10
 #define PRIV_KB             0x4
-#define PRIV_HDD            0x2
+#define PRIV_HD             0x2
 #define PRIV_KFS            0x2
 #define PRIV_VD             0x8
 

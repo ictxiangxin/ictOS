@@ -11,11 +11,14 @@
 #include "kproc.h"
 #include "../io/BIOScolor.h"
 
-PRIVATE VOID _reflash();
+#define _VD_CALL 0x1
+#define _VD_MSG  0X2
+
+PRIVATE VOID _refresh();
 PRIVATE VOID _putchar ( DWORD data );
 PRIVATE VOID _putstring ( DWORD data, DWORD datasize );
 PRIVATE VOID _dropchar ( DWORD data );
-PRIVATE VOID _dropstring ( DWORD data, DWORD datasize );
+PRIVATE VOID _ict_dropchar(BYTE c, BYTE color, DWORD x, DWORD y, DWORD handle);
 
 PRIVATE VOID call_cprintf ( BYTE color, POINTER pformat, BYTE *format, ... );
 PRIVATE VOID _ict_call_printdn ( LINT n, DWORD color );
@@ -31,6 +34,9 @@ PRIVATE DWORD video_high;
 
 PRIVATE DWORD lock = FALSE; /* video lock */
 
+/******************************************************************/
+/* init video service                                             */
+/******************************************************************/
 PUBLIC VOID init_video()
 {
     cursorlocation = ict_cursorlocation();
@@ -40,6 +46,9 @@ PUBLIC VOID init_video()
     ict_refreshvideo ( startlocation, video_width, video_high, GRAPHIC_BUFF_SIZE );
 }
 
+/******************************************************************/
+/* video daemon                                                   */
+/******************************************************************/
 PUBLIC VOID video_daemon()
 {
     MSG m;
@@ -59,9 +68,6 @@ PUBLIC VOID video_daemon()
         case VD_DROPCHAR :
             _dropchar ( m.data );
             break;
-        case VD_DROPSTRING :
-            _dropstring ( m.data, m.datasize );
-            break;
         case VD_TEXTMODE :
             break;
         case VD_GRAPHMODE :
@@ -72,6 +78,9 @@ PUBLIC VOID video_daemon()
     }
 }
 
+/******************************************************************/
+/* print a char on screen                                         */
+/******************************************************************/
 PUBLIC VOID ict_putchar(BYTE c)
 {
     DWORD tmp = DEFAULT_COLOR;
@@ -80,31 +89,25 @@ PUBLIC VOID ict_putchar(BYTE c)
     _putchar(tmp);
 }
 
+/******************************************************************/
+/* print a char on screen with color                              */
+/******************************************************************/
 PUBLIC VOID ict_cputchar(BYTE c, BYTE color)
 {
+    DWORD tmp = color;
+    tmp <<= 0x8;
+    tmp += c;
     if(!ict_lock(&lock))
     {
-        DWORD tmp = color;
-        tmp <<= 0x8;
-        tmp += c;
         _putchar(tmp);
+        ict_unlock(&lock);
     }
-    MSG m;
-    send_msg();
+    send_msg(PID_VD, VD_CHAR, tmp, NULL);
 }
 
-PUBLIC VOID ict_dropchar(BYTE c, BYTE color, DWORD x, DWORD y)
-{
-    x %= video_high;
-    y %= video_width;
-    DWORD data;
-    ((BYTE*)(&data))[0] = c;
-    ((BYTE*)(&data))[1] = color;
-    ((BYTE*)(&data))[2] = x;
-    ((BYTE*)(&data))[3] = y;
-    _dropchar(data);
-}
-
+/******************************************************************/
+/* printf function                                                */
+/******************************************************************/
 PUBLIC VOID ict_printf(BYTE* format, ...)
 {
     if(!ict_lock(&lock)) /* test and lock */
@@ -116,6 +119,9 @@ PUBLIC VOID ict_printf(BYTE* format, ...)
     msg_cprintf(DEFAULT_COLOR, &format, format);
 }
 
+/******************************************************************/
+/* printf function with color                                     */
+/******************************************************************/
 PUBLIC VOID ict_cprintf(BYTE color, BYTE* format, ...)
 {
     if(!ict_lock(&lock)) /* test and lock */
@@ -127,7 +133,26 @@ PUBLIC VOID ict_cprintf(BYTE color, BYTE* format, ...)
     msg_cprintf(color, &format, format);
 }
 
-PRIVATE VOID _reflash()
+/******************************************************************/
+/* drop char by directly call                                     */
+/******************************************************************/
+PUBLIC VOID call_dropchar(BYTE c, BYTE color, DWORD x, DWORD y)
+{
+    _ict_dropchar(c, color, x, y, _VD_CALL);
+}
+
+/******************************************************************/
+/* drop char by sending msg                                       */
+/******************************************************************/
+PUBLIC VOID msg_dropchar(BYTE c, BYTE color, DWORD x, DWORD y)
+{
+    _ict_dropchar(c, color, x, y, _VD_MSG);
+}
+
+/******************************************************************/
+/* refresh video arguments                                        */
+/******************************************************************/
+PRIVATE VOID _refresh()
 {
     while ( cursorlocation >= startlocation + video_width * video_high )
         startlocation += video_width;
@@ -141,6 +166,9 @@ PRIVATE VOID _reflash()
     ict_setstart ( startlocation );
 }
 
+/******************************************************************/
+/* putchar function used by this service                          */
+/******************************************************************/
 PRIVATE VOID _putchar ( DWORD data )
 {
     if ( ( data & 0xff ) == '\n' )
@@ -150,9 +178,12 @@ PRIVATE VOID _putchar ( DWORD data )
         ict_putc ( data, cursorlocation );
         cursorlocation++;
     }
-    _reflash();
+    _refresh();
 }
 
+/******************************************************************/
+/* putstring function used by this service                        */
+/******************************************************************/
 PRIVATE VOID _putstring ( DWORD data, DWORD datasize )
 {
     DWORD i = 0x0;
@@ -160,9 +191,12 @@ PRIVATE VOID _putstring ( DWORD data, DWORD datasize )
     for ( i = 0x1; i < datasize; i++ )
         ict_putc ( color + ( WORD ) ( ( BYTE* ) data ) [i], cursorlocation + i - 0x1 );
     cursorlocation += datasize - 0x1;
-    _reflash();
+    _refresh();
 }
 
+/******************************************************************/
+/* dropchar function used by this service                         */
+/******************************************************************/
 PRIVATE VOID _dropchar ( DWORD data )
 {
     DWORD x = ( DWORD ) ( ( BYTE* ) ( &data ) ) [2];
@@ -171,21 +205,22 @@ PRIVATE VOID _dropchar ( DWORD data )
     ict_putc ( c, startlocation + x * video_width + y );
 }
 
-PRIVATE VOID _dropstring ( DWORD data, DWORD datasize )
+/******************************************************************/
+/* drop a char on screen with two ways                            */
+/******************************************************************/
+PRIVATE VOID _ict_dropchar(BYTE c, BYTE color, DWORD x, DWORD y, DWORD handle)
 {
-    DWORD i = 0x0;
-    for ( i = 0x0; i * sizeof ( DWORD ) < datasize; i++ )
-        _dropchar ( ( ( DWORD* ) data ) [i] );
-}
-
-PRIVATE VOID _ict_dropchar( BYTE data, BYTE color, BYTE x, BYTE y )
-{
-    DWORD tmp = 0x0;
-    ( ( BYTE* ) ( &tmp ) ) [0x0] = data;
-    ( ( BYTE* ) ( &tmp ) ) [0x1] = color;
-    ( ( BYTE* ) ( &tmp ) ) [0x2] = x;
-    ( ( BYTE* ) ( &tmp ) ) [0x3] = y;
-    send_msg ( PID_VD, VD_DROPCHAR, tmp, NULL );
+    x %= video_high;
+    y %= video_width;
+    DWORD data;
+    ((BYTE*)(&data))[0] = c;
+    ((BYTE*)(&data))[1] = color;
+    ((BYTE*)(&data))[2] = x;
+    ((BYTE*)(&data))[3] = y;
+    if(handle == _VD_CALL)
+        _dropchar(data);
+    else
+        send_msg ( PID_VD, VD_DROPCHAR, data, NULL );
 }
 
 /******************************************************************/
@@ -279,9 +314,9 @@ PRIVATE VOID msg_cprintf ( BYTE color, POINTER pformat, BYTE* format, ... )
     BYTE tmpbuff[PRINT_BUFF] = {0x0};
     DWORD bp = 0x1;
     tmpbuff[0x0] = color;
-    int ptr = ( int ) ( pformat );    /* create the pointer to the first argument */
+    DWORD ptr = ( DWORD ) ( pformat );    /* create the pointer to the first argument */
     ptr += sizeof ( POINTER ); /* let a point to the next argument */
-    int i = 0;  /* create i for next loop */
+    DWORD i = 0;  /* create i for next loop */
     for ( i = 0; format[i] != '\0'; i++ )   /* until the string end('\0') */
     {
         if ( format[i] == '%' ) /* special elem in the string */
@@ -289,18 +324,18 @@ PRIVATE VOID msg_cprintf ( BYTE color, POINTER pformat, BYTE* format, ... )
             i++;    /* get the type of the elem */
             if ( format[i] == 's' ) /* it is string */
             {
-                int _i = 0; /* for next loop */
+                DWORD _i = 0; /* for next loop */
                 /* translate the a to the char**, it can point to
                    the char*,and use '*' to get the string(char *),
                    so we get the string we will print */
-                char *str = * ( char** ) ptr;
+                BYTE *str = * ( BYTE** ) ptr;
                 for ( _i = 0; str[_i] != '\0'; _i++ )   /* print all string */
                     tmpbuff[bp++] = str[_i]; /* use the basic function print one char */
                 ptr += sizeof ( POINTER ); /* let a point to the next argument */
             }
             if ( format[i] == 'c' ) /* it is a char */
             {
-                tmpbuff[bp++] = * ( char* ) ptr;   /* translate a to char* and get the char */
+                tmpbuff[bp++] = * ( BYTE* ) ptr;   /* translate a to char* and get the char */
                 ptr += sizeof ( POINTER ); /* let a point to the next argument */
             }
             if ( format[i] == 'x' || format[i] == 'o' ) /* it is a unsigned number */
@@ -308,17 +343,17 @@ PRIVATE VOID msg_cprintf ( BYTE color, POINTER pformat, BYTE* format, ... )
                 switch ( format[i] )    /* choose the number system */
                 {
                 case 'x' :  /* it is hex number */
-                    _ict_msg_printhon ( * ( unsigned int* ) ptr, 16, tmpbuff, &bp );
+                    _ict_msg_printhon ( * ( DWORD* ) ptr, 16, tmpbuff, &bp );
                     break;
                 case 'o' :  /* it is octal number */
-                    _ict_msg_printhon ( * ( unsigned int* ) ptr, 8, tmpbuff, &bp );
+                    _ict_msg_printhon ( * ( DWORD* ) ptr, 8, tmpbuff, &bp );
                     break;
                 }
                 ptr += sizeof ( POINTER ); /* let a point to the next argument */
             }
             if ( format[i] == 'd' ) /* it is decimal number */
             {
-                _ict_msg_printdn ( * ( signed int* ) ptr, tmpbuff, &bp );    /* use special function to print it */
+                _ict_msg_printdn ( * ( LINT* ) ptr, tmpbuff, &bp );    /* use special function to print it */
                 ptr += sizeof ( POINTER ); /* let a point to the next argument */
             }
             continue;   /* to handle next char */

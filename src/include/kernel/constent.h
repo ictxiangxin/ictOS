@@ -20,6 +20,12 @@
 #define GRAPHIC_BUFF_SIZE       0x2000
 #define PRINT_BUFF              0x100
 
+#define OPNEFILE_SUM            0x20
+#define FDT_SIZE                0x200
+#define FAT_BLOCK_SIZE          0x200
+#define FAT_BLOCK_SUM           0x10
+#define SECTOR_SIZE             0x200
+
 #define DESC_SIZE               0x8
 
 #define RESERVED_DESC_BY_KERNEL 0x8

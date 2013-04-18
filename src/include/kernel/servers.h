@@ -16,7 +16,11 @@ PUBLIC BYTE get_key();
 PUBLIC VOID init_clock();
 
 /* hard disk service */
-PUBLIC VOID init_hd();
+PUBLIC VOID    init_hd();
+PUBLIC VOID    hd_interrupt();
+PUBLIC VOID    hd_daemon();
+PUBLIC DWORD   ict_hdread(DWORD sector_num, DWORD sector_sum, DWORD device, POINTER buff);
+PUBLIC DWORD   ict_hdwrite(DWORD sector_num, DWORD sector_sum, DWORD device, POINTER buff);
 
 /* memory management */
 PUBLIC VOID    init_mem();
@@ -42,7 +46,7 @@ PUBLIC VOID    ict_full();
 PUBLIC DWORD   ict_mypid();
 
 /* msg service */
-PUBLIC VOID    init_msgpool();
+PUBLIC VOID    init_msg();
 PUBLIC VOID    msgbuf_hook(DWORD proc_id);
 PUBLIC DWORD   send_msg(DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasize);
 PUBLIC DWORD   read_msg(MSG* msg);
@@ -56,7 +60,8 @@ PUBLIC VOID    init_video();
 PUBLIC VOID    video_daemon();
 PUBLIC VOID    ict_putchar(BYTE c);
 PUBLIC VOID    ict_cputchar(BYTE c, BYTE color);
-PUBLIC VOID    ict_dropchar(BYTE c, BYTE color, DWORD x, DWORD y);
+PUBLIC VOID    call_dropchar(BYTE c, BYTE color, DWORD x, DWORD y);
+PUBLIC VOID    msg_dropchar(BYTE c, BYTE color, DWORD x, DWORD y);
 PUBLIC VOID    ict_printf(BYTE* format, ...);
 PUBLIC VOID    ict_cprintf(BYTE color, BYTE* format, ...);
 

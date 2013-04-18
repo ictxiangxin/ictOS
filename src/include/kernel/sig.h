@@ -39,24 +39,26 @@
 /******************************************************************/
 /* signals of hard disk daemon                                    */
 /******************************************************************/
-#define HDD_READ      0x0001 /* request read data from disk to buff */
-#define HDD_WRITE     0x0002 /* request write data from buff to disk */
-#define HDD_READSUCC  0x0003 /* return a sig to requst proc that read successfully */
-#define HDD_WRITESUCC 0x0004 /* return a sig to requst proc that write successfully */
-#define HDD_READERR   0x0005 /* return a sig to requst proc that read error*/
-#define HDD_WRITEERR  0x0006 /* return a sig to requst proc that write error */
+#define HD_READ      0x0001 /* request read data from disk to buff */
+#define HD_WRITE     0x0002 /* request write data from buff to disk */
+#define HD_READSUCC  0x0003 /* return a sig to requst proc that read successfully */
+#define HD_WRITESUCC 0x0004 /* return a sig to requst proc that write successfully */
+#define HD_READERR   0x0005 /* return a sig to requst proc that read error*/
+#define HD_WRITEERR  0x0006 /* return a sig to requst proc that write error */
 
 /******************************************************************/
 /* signals of kernel file system                                  */
 /******************************************************************/
 #define KFS_OPEN
 
+/******************************************************************/
+/* signals of video service                                       */
+/******************************************************************/
 #define VD_CHAR       0x0001
 #define VD_STRING     0x0002
 #define VD_DROPCHAR   0x0003
-#define VD_DROPSTRING 0x0004
-#define VD_TEXTMODE   0x0005
-#define VD_GRAPHMODE  0x0006
+#define VD_TEXTMODE   0x0004
+#define VD_GRAPHMODE  0x0005
 
 /******************************************************************/
 /* signals of keyboard daemon                                     */

@@ -19,28 +19,14 @@
 #define IDLE_USEUP    0
 
 PUBLIC KPROCLIST kernelproclist;	/* the kernel proc list */
-PUBLIC KPROC* current_proc;	/* save the addr of the kproc of the current proc */
+PUBLIC KPROC*    current_proc;	/* save the addr of the kproc of the current proc */
 
 PRIVATE MSGPOOL* p_kernelmsgpool; /*pointer of kernel msg pool */
+
 PRIVATE DWORD lock = FALSE; /* lock of msg pool */
 
+PRIVATE VOID init_msgpool ( MSGPOOL* msgpool );
 PRIVATE VOID msgbuf_drop ( DWORD proc_id );
-
-/******************************************************************/
-/* init the msg pool, all buf will set to unused and packaged     */
-/******************************************************************/
-PUBLIC VOID init_msgpool ( MSGPOOL* msgpool )
-{
-    DWORD i = 0;	/* for next loop */
-    for ( i = 0; i < MSGBUF_SUM; i++ )	/* init all bufs of the msg pool */
-    {
-        msgpool->msgbuflist[i].hook = HOOK_IDLE;	/* mark the buf to unhooked */
-        msgpool->msgbuflist[i].next = &msgpool->msgbuflist[i];	/* package this buf */
-        msgpool->msgbuflist[i].read_p = EMPTY_READ_P;	/* it means the buf is empty */
-        msgpool->msgbuflist[i].write_p = EMPTY_WRITE_P;	/* set the write pointer point to the first */
-    }
-    msgpool->idle = & ( msgpool->msgbuflist[INIT_IDLE_BUF] );	/* make the first buf be the idle buf */
-}
 
 /******************************************************************/
 /* init the msg pool, all buf will set to unused and packaged     */
@@ -148,6 +134,22 @@ PUBLIC VOID msgbuf_hook ( DWORD proc_id )
     p_kernelmsgpool->idle = IDLE_USEUP;	/* set the idle = IDLE_USEUP means no idle buf in msg pool */
 msgbuf_hook_end:
     ict_unlock(&lock);
+}
+
+/******************************************************************/
+/* init the msg pool, all buf will set to unused and packaged     */
+/******************************************************************/
+PRIVATE VOID init_msgpool ( MSGPOOL* msgpool )
+{
+    DWORD i = 0;	/* for next loop */
+    for ( i = 0; i < MSGBUF_SUM; i++ )	/* init all bufs of the msg pool */
+    {
+        msgpool->msgbuflist[i].hook = HOOK_IDLE;	/* mark the buf to unhooked */
+        msgpool->msgbuflist[i].next = &msgpool->msgbuflist[i];	/* package this buf */
+        msgpool->msgbuflist[i].read_p = EMPTY_READ_P;	/* it means the buf is empty */
+        msgpool->msgbuflist[i].write_p = EMPTY_WRITE_P;	/* set the write pointer point to the first */
+    }
+    msgpool->idle = & ( msgpool->msgbuflist[INIT_IDLE_BUF] );	/* make the first buf be the idle buf */
 }
 
 /******************************************************************/

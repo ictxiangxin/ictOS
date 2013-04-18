@@ -58,7 +58,7 @@ void testc()
             x = x == 24 ? 24 : x + 1;
         if ( m.sig == 32 )
             y = y == 79 ? 79 : y + 1;
-        ict_dropchar ( c, color, x, y );
+        msg_dropchar ( c, color, x, y );
         color = ++color % 0xf + 1;
         c++;
         if ( c > '9' )
@@ -106,14 +106,14 @@ void testf()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     while ( TRUE )
     {
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 11, 70 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 9, 70 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 71 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 69 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 12, 70 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 8, 70 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 72 );
-        ict_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 11, 70 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 9, 70 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 71 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 69 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 12, 70 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 8, 70 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 72 );
+        msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
         for ( i = 0; i < 100000000; i++ );
@@ -125,7 +125,7 @@ void create_service_deamon()
     add_kernelproc ( kpm_daemon, PRIV_KPM ); /* kpid: 0 */
     add_kernelproc ( mem_daemon, PRIV_MEM ); /* kpid: 1 */
     add_kernelproc ( keyboard_daemon, PRIV_KB ); /* kpid: 2 */
-    add_kernelproc ( hd_daemon, PRIV_HDD ); /* kpid: 3 */
+    add_kernelproc ( hd_daemon, PRIV_HD ); /* kpid: 3 */
     add_kernelproc ( video_daemon, PRIV_VD ); /* kpid: 3 */
 }
 

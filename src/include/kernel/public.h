@@ -150,6 +150,8 @@ typedef struct kproc
     DWORD count;
     DWORD hung;
 
+    DWORD fdp[OPNEFILE_SUM];
+
     struct kproc* next;
 } KPROC;
 
@@ -159,6 +161,29 @@ typedef struct kproclist
     KPROC procs[KPROC_SUM];
     DWORD proc_sum;
 } KPROCLIST;
+
+/* ATA Date Struct */
+typedef struct ATAdata
+{
+    DWORD secnum; /* sector number */
+    DWORD seccnt; /* sector count */
+    DWORD device; /* device */
+    BYTE* buff; /* buffer of data */
+} ATADATA;
+
+/* File Description */
+typedef struct filedescription
+{
+    DWORD fat;      /* FAT number of this file */
+    DWORD mode;     /* open mode (read, write, read & write) */
+    DWORD offset;   /* read or write offset */
+} FILEDESC;
+
+typedef struct fatblock
+{
+    DWORD id;
+    BYTE  data[FAT_BLOCK_SIZE];
+} FATBLOCK;
 
 /* Keyboard Buffer Node */
 typedef struct KeyboardNode
@@ -176,15 +201,6 @@ typedef struct KeyboardBuffer
     KEYBOARDNODE buffer_node[KEYBOARD_BUFFER_SIZE];
     DWORD used_size;
 } KEYBOARDBUFFER;
-
-/* ATA Date Struct */
-typedef struct ATAdata
-{
-    DWORD secnum; /* sector number */
-    DWORD seccnt; /* sector count */
-    DWORD dev; /* device */
-    BYTE* buff; /* buffer of data */
-} ATADATA;
 
 #endif
 

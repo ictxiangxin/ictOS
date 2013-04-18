@@ -12,18 +12,19 @@
 
 PUBLIC KPROC* current_proc; /* current_proc defined in "kernel/kproc.c" */
 
-PRIVATE MEMBLOCK* usedlist; /* point to used list */
-PRIVATE MEMBLOCK* idlelist; /* point to idle list */
+PRIVATE MEMBLOCK*  usedlist; /* point to used list */
+PRIVATE MEMBLOCK*  idlelist; /* point to idle list */
 PRIVATE MEMRECORD* recordlist; /* point to first record list */
 PRIVATE MEMRECORD* nowrecord; /* current record pointer */
+
 PRIVATE DWORD lock = FALSE; /* memory lock */
 
-PRIVATE VOID mem_init();
-PRIVATE VOID record_add(MEMBLOCK* list, POINTER addr, DWORD size);
-PRIVATE VOID record_remove(MEMBLOCK* node);
+PRIVATE VOID    mem_init();
+PRIVATE VOID    record_add(MEMBLOCK* list, POINTER addr, DWORD size);
+PRIVATE VOID    record_remove(MEMBLOCK* node);
 PRIVATE POINTER _ict_malloc(DWORD size);
-PRIVATE DWORD _ict_free(POINTER addr);
-PRIVATE DWORD _ict_idlesize();
+PRIVATE DWORD   _ict_free(POINTER addr);
+PRIVATE DWORD   _ict_idlesize();
 
 /******************************************************************/
 /* init the memory management service, and create two init nodes  */
@@ -49,9 +50,9 @@ PUBLIC VOID init_mem()
 } 
 
 /******************************************************************/
-/* malloc for directly call                                       */
+/* malloc for kproc                                               */
 /******************************************************************/
-PUBLIC POINTER call_malloc(DWORD size)
+PUBLIC POINTER ict_malloc(DWORD size)
 {
     if(!ict_lock(&lock)) /* test and lock */
     {
@@ -66,9 +67,9 @@ PUBLIC POINTER call_malloc(DWORD size)
 }
 
 /******************************************************************/
-/* free for directly call                                         */
+/* free for kproc                                                 */
 /******************************************************************/
-PUBLIC DWORD call_free(POINTER addr)
+PUBLIC DWORD ict_free(POINTER addr)
 {
     if(!ict_lock(&lock)) /* test and lock */
     {
@@ -132,7 +133,8 @@ PUBLIC VOID mem_daemon()
     while(TRUE)
     {
         recv_msg(&m);
-        while(!ict_lock(&lock)); /* until lock successfully */
+        while(!ict_lock(&lock))
+            ict_done(); /* until lock successfully */
         switch(m.sig)
         {
         case MEM_MALLOC :
