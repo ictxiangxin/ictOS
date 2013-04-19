@@ -8,7 +8,9 @@ src/
 │   │   ├── bootblock.inc
 │   │   └── sysboot.inc
 │   ├── fs
-│   │   └── fat32dbr.inc
+│   │   ├── fat32const.h
+│   │   ├── fat32dbr.inc
+│   │   └── fat32struct.h
 │   ├── io
 │   │   ├── ata.h
 │   │   ├── BIOScolor.h
@@ -20,6 +22,7 @@ src/
 │   │   └── VGAinfo.inc
 │   └── kernel
 │       ├── constent.h
+│       ├── crash.inc
 │       ├── daemon.h
 │       ├── ELFstruct.inc
 │       ├── intentry.inc
@@ -52,4 +55,4 @@ src/
     │   └── video.c
     └── sysldr.s
 
-10 directories, 42 files
+10 directories, 45 files
