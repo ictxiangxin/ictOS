@@ -21,6 +21,7 @@ void testb()
     {
         send_msg ( PID_KB, KB_KEY, NULL, NULL );
         recv_msg ( &m );
+        ict_cprintf(COLOR_YELLOW, "\"%d\"", m.sproc_id);
     }
 }
 
@@ -49,15 +50,16 @@ void testc()
             x = x == 24 ? 24 : x + 1;
         if ( m.sig == 32 )
             y = y == 79 ? 79 : y + 1;
-        msg_dropchar ( c, color, x, y );
-        msg_dropchar ( c, color, y, x );
+        call_dropchar ( c, color, x, y );
+        call_dropchar ( c, color, x, y - 1 );
+        call_dropchar ( c, color, x, y + 1 );
         color = ++color % 0xf + 1;
         c++;
         if ( c > '9' )
             c = '0';
         if ( m.sig )
             continue;
-        for ( i = 0; i < 300000; i++ );
+        for ( i = 0; i < 10000000; i++ );
     }
 }
 
@@ -70,9 +72,9 @@ void testd()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     while ( TRUE )
     {
-        if ( send_msg ( 7, s, NULL, NULL ) )
+        if ( send_msg ( 8, s, NULL, NULL ) )
             s++;
-        for ( i = 0; i < 1000000; i++ );
+        for ( i = 0; i < 10000000; i++ );
     }
 }
 
@@ -86,7 +88,7 @@ void teste()
     {
         recv_msg ( &m );
         ict_cprintf ( COLOR_MAGENTA, "_%d_", m.sig );
-        for ( i = 0; i < 1000000; i++ );
+        for ( i = 0; i < 10000000; i++ );
     }
 }
 
@@ -109,12 +111,12 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
-        //buff[0] = p;
-        //ict_hdwrite(0x500, 1, 0, buff);
-        //buff[0] =0;
-        //ict_hdread(0x500, 1, 0, buff);
-        //ict_cprintf(COLOR_RED, "[%d]", buff[0]);
-        for ( i = 0; i < 10000000; i++ );
+        buff[0] = p;
+        ict_hdwrite(0x500, 1, 0, buff);
+        buff[0] =0;
+        ict_hdread(0x500, 1, 0, buff);
+        ict_cprintf(COLOR_RED, "[%d]", buff[0]);
+        for ( i = 0; i < 100000000; i++ );
     }
 }
 
@@ -141,11 +143,11 @@ PUBLIC VOID kernel()
     init_kb();    /* init keyboard service */
     init_hd();    /* init hard disk service */
     create_service_deamon(); /* create system service daemon */
-    //add_kernelproc ( testb, 4 );
-    add_kernelproc ( testc, 1 );
-    add_kernelproc ( testd, 2 );
+    add_kernelproc ( testb, 3 );
+    add_kernelproc ( testc, 2 );
+    add_kernelproc ( testd, 3 );
     add_kernelproc ( teste, 2 );
-    add_kernelproc ( testf, 2 );
+    add_kernelproc ( testf, 4 );
     ict_cli();
     ict_out ( SLAVE_8259A_OCW1, IRQ_ATA );
     ict_out ( MASTER_8259A_OCW1, IRQ_KEYBOARD & IRQ_CLOCK & IRQ_SLAVE8259A );   /* open the i8259a interrupts */

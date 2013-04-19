@@ -140,7 +140,6 @@ typedef struct kproc
     DWORD id;
     DWORD present;
     DWORD status;
-    DWORD statuslock;
 
     MSGBUF* msgentry;
     DWORD   msglock;

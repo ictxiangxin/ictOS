@@ -132,6 +132,7 @@ PRIVATE DWORD _hd_read(ATADATA *pd)
     ict_out(DEV_PORT(ATA_P_DEVICE), ATA_DEVREG_LBA | ATA_DEVREG_MASTER | (pd->secnum >> 0x18 & 0xf));
     ict_out(DEV_PORT(ATA_P_COMMAND), ATA_CMD_READSECTORS);
     ict_waitint();
+    while(!(ict_in(ATA_P_STATUS) & ATA_STATUS_DRDY));
     if(ict_in(ATA_P_STATUS) & ATA_STATUS_ERR)
     {
         BYTE err = ict_in(DEV_PORT(ATA_P_ERROR));

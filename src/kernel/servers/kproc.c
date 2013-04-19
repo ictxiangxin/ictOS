@@ -57,7 +57,6 @@ PUBLIC VOID add_kernelproc ( POINTER func, DWORD privilege )	/* load a kernel pr
     this->esp = KPROC_STACK_BASE + KPROC_STACK_SIZE * ( proc_number + 1 );	/* set the stack pointer */
     this->eflags = 0x1202;	/* eflags of the proc */
     this->status = KPS_OK;	/* all procs will be wakeuped by kproc manager */
-    this->statuslock = FALSE;
     this->priv = privilege;	/* set the privilege of this proc */
     this->count = this->priv;	/* set the count of the proc */
     this->hung = 1;	/* set the hungry of the proc, 1 means it is full */
@@ -87,7 +86,6 @@ PUBLIC VOID kpm_daemon()
         send_msg(PID_KPM, SPE_NOMSG, NULL, NULL);
         if ( !read_msg ( &msg ) )	/* read the msg */
             continue;	/* if read fail, wait until have msg */
-        /* kpm have the top privilege, so needn't lock anything */
         switch ( msg.sig )	/* handle each sig, which at the high 2-byte */
         {
             case KPM_HAVEMSG :	/* proc has msg */
@@ -139,13 +137,7 @@ PUBLIC VOID kpm_daemon()
 /******************************************************************/
 PUBLIC VOID ict_sleep()
 {
-    if(!ict_lock(&(kernelproclist.procs[current_proc->id].statuslock)))
-    {
-        kernelproclist.procs[current_proc->id].status = KPS_SLEEP;
-        ict_unlock(&(kernelproclist.procs[current_proc->id].statuslock));
-    }
-    else
-        send_msg ( PID_KPM, KPM_SLEEP, NULL, NULL );	/* send a sleep sig to kpm */
+    send_msg ( PID_KPM, KPM_SLEEP, NULL, NULL );	/* send a sleep sig to kpm */
     ict_done();	/* nothing to do */
 }
 
@@ -154,14 +146,7 @@ PUBLIC VOID ict_sleep()
 /******************************************************************/
 PUBLIC VOID ict_wakeup ( DWORD kpid )
 {
-    if(kernelproclist.procs[kpid].status == KPS_SLEEP)
-        if(!ict_lock(&(kernelproclist.procs[kpid].statuslock)))
-        {
-            kernelproclist.procs[kpid].status = KPS_OK;
-            ict_unlock(&(kernelproclist.procs[kpid].statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_WAKEUP, kpid, NULL );	/* send the wakeup msg to kpm */
+    send_msg ( PID_KPM, KPM_WAKEUP, kpid, NULL );	/* send the wakeup msg to kpm */
 }
 
 /******************************************************************/
@@ -171,13 +156,7 @@ PUBLIC VOID ict_waitint()
 {
     if ( !have_int() )
     {
-        if(!ict_lock(&(kernelproclist.procs[current_proc->id].statuslock)))
-        {
-            kernelproclist.procs[current_proc->id].status = KPS_WAITINT;
-            ict_unlock(&(kernelproclist.procs[current_proc->id].statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_WAITINT, NULL, NULL );	/* send a wait int sig to kpm */
+        send_msg ( PID_KPM, KPM_WAITINT, NULL, NULL );	/* send a wait int sig to kpm */
         ict_done();	/* nothing to do */
     }
 }
@@ -187,14 +166,7 @@ PUBLIC VOID ict_waitint()
 /******************************************************************/
 PUBLIC VOID ict_intfor ( DWORD kpid )
 {
-    if(kernelproclist.procs[kpid].status == KPS_WAITINT)
-        if(!ict_lock(&(kernelproclist.procs[kpid].statuslock)))
-        {
-            kernelproclist.procs[kpid].status = KPS_OK;
-            ict_unlock(&(kernelproclist.procs[kpid].statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_HAVEINT, kpid, NULL );	/* tell the kpm that the proc have int */
+    send_msg ( PID_KPM, KPM_HAVEINT, kpid, NULL );	/* tell the kpm that the proc have int */
 }
 
 /******************************************************************/

@@ -120,7 +120,7 @@ PUBLIC DWORD ict_idlesize()
     }
     MSG m;
     send_msg(PID_MEM, MEM_IDLE, NULL, NULL);
-    recv_msg(&m);
+    return_msg(&m, PID_MEM, MEM_ANS);
     return m.data;
 }
 
@@ -373,9 +373,9 @@ PRIVATE DWORD _ict_free(POINTER addr)
 /******************************************************************/
 PRIVATE DWORD _ict_idlesize()
 {
-    MEMBLOCK* idle_scan = idlelist;
+    MEMBLOCK* idle_scan = idlelist->next;
     DWORD size = idlelist->size;
-    while(idle_scan->next != idlelist)
+    while(idle_scan != idlelist)
     {
         size += idle_scan->size;
         idle_scan = idle_scan->next;

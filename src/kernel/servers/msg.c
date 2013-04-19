@@ -62,13 +62,7 @@ PUBLIC VOID recv_msg ( MSG* msg )
 {
     if ( have_msg() == FALSE ) /* if there are no msg */
     {
-        if(!ict_lock(&(current_proc->statuslock)))
-        {
-            current_proc->status = KPM_WAITMSG;
-            ict_unlock(&(current_proc->statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
+        send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
         ict_done(); /* nothing to do */
     }
     read_msg ( msg ); /* when I awake, it means have msg to me */
@@ -81,13 +75,7 @@ PUBLIC VOID return_msg(MSG* msg, DWORD src_proc_id, DWORD sig)
 {
     if ( have_msg() == FALSE ) /* if there are no msg */
     {
-        if(!ict_lock(&(current_proc->statuslock)))
-        {
-            current_proc->status = KPM_WAITMSG;
-            ict_unlock(&(current_proc->statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
+        send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
         ict_done(); /* nothing to do */
     }
     while(!search_msg(msg, src_proc_id, sig))
@@ -267,13 +255,7 @@ PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasiz
     temp_ent->write_p %= MSGBUF_SIZE; /* rollback */
     kernelproclist.procs[dest_proc_id].havemsg = TRUE; /* set the flag of "have msg" */
     if ( kernelproclist.procs[dest_proc_id].status == KPS_WAITMSG )
-        if(!ict_lock(&(kernelproclist.procs[dest_proc_id].statuslock)))
-        {
-            kernelproclist.procs[dest_proc_id].status = KPS_OK;
-            ict_unlock(&(kernelproclist.procs[dest_proc_id].statuslock));
-        }
-        else
-            send_msg ( PID_KPM, KPM_HAVEMSG, dest_proc_id, NULL );
+        kernelproclist.procs[dest_proc_id].status = KPS_OK;
     ict_unlock(&(kernelproclist.procs[dest_proc_id].msglock));
     return TRUE; /* send msg successful */
 }
