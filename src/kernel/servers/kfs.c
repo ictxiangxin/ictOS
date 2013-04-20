@@ -83,10 +83,10 @@ PRIVATE DWORD _kfs_open(BYTE* filepath)
 {
 }
 
-PRIVATE DWORD _search_file_in_dir(DWORD fat_num, BYTE* filename, DWORD filetype)
+PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, DWORD filetype)
 {
     _read_cluster(fat_num, tmp_cluster);
-    /* the next is to compare file name */
+    SDIRENTRY* item = tmp_cluster;
 }
 
 PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff)
