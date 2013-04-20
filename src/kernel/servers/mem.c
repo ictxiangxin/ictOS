@@ -181,7 +181,7 @@ PRIVATE VOID record_add(MEMBLOCK* list, POINTER addr, DWORD size)
                 idlelist = dest_node;
             else
                 usedlist = dest_node;
-         	nowrecord->statmap |= test_map;
+            nowrecord->statmap |= test_map;
             nowrecord->count++;
             return;
         }
@@ -191,7 +191,7 @@ PRIVATE VOID record_add(MEMBLOCK* list, POINTER addr, DWORD size)
     dest_node->back = tmp_scan;
     tmp_scan->next->back = dest_node;
     tmp_scan->next = dest_node;
-	nowrecord->statmap |= test_map;
+    nowrecord->statmap |= test_map;
     nowrecord->count++;
     return;
 }
@@ -210,7 +210,7 @@ PRIVATE VOID record_remove(MEMBLOCK* node)
         else
             scan = scan->next;
     for(test_num = 0; &(scan->spacelist[test_num]) != node; test_num++)
-		test_map <<= 1;
+        test_map <<= 1;
     scan->statmap ^= test_map;
     scan->count--;
     if(scan->count == 0x0)

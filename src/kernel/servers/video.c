@@ -159,7 +159,7 @@ PRIVATE VOID _refresh()
     if ( startlocation + video_width * video_high >= GRAPHIC_BUFF_SIZE - video_width * video_high )
     {
         ict_refreshvideo ( startlocation, video_width, video_high, GRAPHIC_BUFF_SIZE );
-		cursorlocation -= startlocation;
+        cursorlocation -= startlocation;
         startlocation = 0;
     }
     ict_setcursor ( cursorlocation );
@@ -228,71 +228,71 @@ PRIVATE VOID _ict_dropchar(BYTE c, BYTE color, DWORD x, DWORD y, DWORD handle)
 /******************************************************************/
 PRIVATE VOID call_cprintf ( BYTE color, POINTER pformat, BYTE *format, ... )
 {
-    LINT a = ( LINT ) ( pformat );	/* create the pointer to the first argument */
-    a += sizeof(POINTER);	/* let a point to the next argument */
+    LINT a = ( LINT ) ( pformat ); /* create the pointer to the first argument */
+    a += sizeof(POINTER); /* let a point to the next argument */
     DWORD tmp_color = color;
     tmp_color <<= 0x8;
-    DWORD i = 0;	/* create i for next loop */
-    for ( i = 0; format[i] != '\0'; i++ )	/* until the string end('\0') */
+    DWORD i = 0; /* create i for next loop */
+    for ( i = 0; format[i] != '\0'; i++ ) /* until the string end('\0') */
     {
-        if ( format[i] == '%' )	/* special elem in the string */
+        if ( format[i] == '%' ) /* special elem in the string */
         {
-            i++;	/* get the type of the elem */
-            if ( format[i] == 's' )	/* it is string */
+            i++; /* get the type of the elem */
+            if ( format[i] == 's' ) /* it is string */
             {
-                DWORD _i = 0;	/* for next loop */
+                DWORD _i = 0; /* for next loop */
                 /* translate the a to the BYTE**, it can point to
                    the BYTE*,and use '*' to get the string(BYTE *),
                    so we get the string we will print */
                 BYTE *str = * ( BYTE** ) a;
-                for ( _i = 0; str[_i] != '\0'; _i++ )	/* print all string */
-                    _putchar ( str[_i] + tmp_color );	/* use the basic function print one BYTE */
-                a += sizeof(POINTER);	/* let a point to the next argument */
+                for ( _i = 0; str[_i] != '\0'; _i++ ) /* print all string */
+                    _putchar ( str[_i] + tmp_color ); /* use the basic function print one BYTE */
+                a += sizeof(POINTER); /* let a point to the next argument */
             }
-            if ( format[i] == 'c' )	/* it is a BYTE */
+            if ( format[i] == 'c' ) /* it is a BYTE */
             {
-                _putchar ( * ( BYTE* ) a + tmp_color );	/* translate a to BYTE* and get the BYTE */
-                a += sizeof(POINTER);	/* let a point to the next argument */
+                _putchar ( * ( BYTE* ) a + tmp_color ); /* translate a to BYTE* and get the BYTE */
+                a += sizeof(POINTER); /* let a point to the next argument */
             }
-            if ( format[i] == 'x' || format[i] == 'o' )	/* it is a unsigned number */
+            if ( format[i] == 'x' || format[i] == 'o' ) /* it is a unsigned number */
             {
-                switch ( format[i] )	/* choose the number system */
+                switch ( format[i] ) /* choose the number system */
                 {
-                case 'x' :	/* it is hex number */
+                case 'x' : /* it is hex number */
                     _ict_call_printhon ( * ( DWORD* ) a, 16, tmp_color );
                     break;
-                case 'o' :	/* it is octal number */
+                case 'o' : /* it is octal number */
                     _ict_call_printhon ( * ( DWORD* ) a, 8, tmp_color );
                     break;
                 }
-                a += sizeof(POINTER);	/* let a point to the next argument */
+                a += sizeof(POINTER); /* let a point to the next argument */
             }
-            if ( format[i] == 'd' )	/* it is decimal number */
+            if ( format[i] == 'd' ) /* it is decimal number */
             {
-                _ict_call_printdn ( * ( LINT* ) a, tmp_color );	/* use special function to print it */
-                a += sizeof(POINTER);	/* let a point to the next argument */
+                _ict_call_printdn ( * ( LINT* ) a, tmp_color ); /* use special function to print it */
+                a += sizeof(POINTER); /* let a point to the next argument */
             }
-            continue;	/* to handle next BYTE */
+            continue; /* to handle next BYTE */
         }
-        _putchar ( format[i] + tmp_color );	/* it is a normal BYTE, and just print it */
+        _putchar ( format[i] + tmp_color ); /* it is a normal BYTE, and just print it */
     }
 }
 
 /******************************************************************/
 /* print the signed decimal number                                */
 /******************************************************************/
-PRIVATE VOID _ict_call_printdn ( LINT n, DWORD color )	/* print signed decimal number */
+PRIVATE VOID _ict_call_printdn ( LINT n, DWORD color ) /* print signed decimal number */
 {
-    if ( n & 0x80000000 )	/* if it is a negetive number */
+    if ( n & 0x80000000 ) /* if it is a negetive number */
     {
-        n ^= 0xffffffff;	/* translate to positive number */
-        n++;			/*                              */
-        _putchar ( '-' + color );	/* print the negetive sym */
+        n ^= 0xffffffff; /* translate to positive number */
+        n++;   /*                              */
+        _putchar ( '-' + color ); /* print the negetive sym */
     }
-    DWORD a = 0;	/* save the higher number */
-    if ( ( a = n / 10 ) != 0 )	/* compute the higher number and if it is 0 */
-        _ict_call_printdn ( a, color );	/* it is not 0 and we need call _ict_call_printdn() to print it */
-    _putchar ( '0' + ( n % 10 ) + color );	/* it is not hex number or it is not a BYTE, print it normally */
+    DWORD a = 0; /* save the higher number */
+    if ( ( a = n / 10 ) != 0 ) /* compute the higher number and if it is 0 */
+        _ict_call_printdn ( a, color ); /* it is not 0 and we need call _ict_call_printdn() to print it */
+    _putchar ( '0' + ( n % 10 ) + color ); /* it is not hex number or it is not a BYTE, print it normally */
 }
 
 /******************************************************************/
@@ -300,13 +300,13 @@ PRIVATE VOID _ict_call_printdn ( LINT n, DWORD color )	/* print signed decimal n
 /******************************************************************/
 PRIVATE VOID _ict_call_printhon ( DWORD n, DWORD base, DWORD color )
 {
-    DWORD a = 0;	/* save the higher number */
-    if ( ( a = n / base ) != 0 )	/* compute the higher number and if it is 0 */
-        _ict_call_printhon ( a, base, color );	/* it is not 0 and we need call _ict_call_printhon() to print it */
-    if ( ( n % base ) > 9 )	/* if it is a hex number and this byte is a BYTE */
-        _putchar ( 'a' + ( n % base ) - 10 + color );	/* translate it to a hex BYTE and print it */
+    DWORD a = 0; /* save the higher number */
+    if ( ( a = n / base ) != 0 ) /* compute the higher number and if it is 0 */
+        _ict_call_printhon ( a, base, color ); /* it is not 0 and we need call _ict_call_printhon() to print it */
+    if ( ( n % base ) > 9 ) /* if it is a hex number and this byte is a BYTE */
+        _putchar ( 'a' + ( n % base ) - 10 + color ); /* translate it to a hex BYTE and print it */
     else
-        _putchar ( '0' + ( n % base ) + color );	/* it is not a BYTE, print it normally */
+        _putchar ( '0' + ( n % base ) + color ); /* it is not a BYTE, print it normally */
 }
 
 PRIVATE VOID msg_cprintf ( BYTE color, POINTER pformat, BYTE* format, ... )

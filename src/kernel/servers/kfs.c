@@ -57,15 +57,15 @@ PUBLIC VOID init_kfs()
 
 PUBLIC VOID kfs_daemon()
 {
-	MSG m;
-	while(TRUE)
-	{
-		recv_msg(&m);
-		switch(m.sig)
-		{
-		}
+    MSG m;
+    while(TRUE)
+    {
+        recv_msg(&m);
+        switch(m.sig)
+        {
+        }
         dest_msg ( &m );
-	}
+    }
 }
 
 PRIVATE VOID init_fatcache()

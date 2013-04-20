@@ -5,17 +5,17 @@
 
 PUBLIC BYTE* ict_strcpy(BYTE* src, BYTE* des)
 {
-	while((*des++ = *src++) != '\0');
-	*des = '\0';
-	return des;
+    while((*des++ = *src++) != '\0');
+    *des = '\0';
+    return des;
 }
 
 PUBLIC BYTE* ict_strcpyl(BYTE* src, BYTE* des, DWORD len)
 {
-	DWORD i;
-	for(i = 0; i < len; i++)
-		des[i] = scr[i];
-	return des;
+    DWORD i;
+    for(i = 0; i < len; i++)
+        des[i] = scr[i];
+    return des;
 }
 
 PUBLIC DWORD ict_strcmp(BYTE* str1, BYTE* str2)

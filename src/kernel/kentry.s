@@ -9,5 +9,5 @@ global _start
 
 [bits 32]
 _start:
-	call    kernel  ; jmp to kernel c part
-	jmp	$
+    call    kernel  ; jmp to kernel c part
+    jmp     $
