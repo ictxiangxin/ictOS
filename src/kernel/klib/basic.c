@@ -32,3 +32,13 @@ PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
             return FALSE;
     return TRUE;
 }
+
+PUBLIC DWORD ict_max(DWORD* list, DWORD len)
+{
+    DWORD max = 0x0;
+    DWORD i;
+    for(i = 0x1; i < len; i++)
+        if(list[max] < list[i])
+            max = i;
+    return max;
+}
