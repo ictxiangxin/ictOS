@@ -70,6 +70,7 @@ PUBLIC VOID add_kernelproc ( POINTER func, DWORD privilege ) /* load a kernel pr
     this->id = proc_number; /* set the id of the proc */
     this->msgentry = NULL; /* prepare hook buf to this proc */
     msgbuf_hook ( this->id );
+    //init_fdpblock(this->fdpblock);
     kernelproclist.proc_sum++; /* proc sum increase */
 }
 
@@ -187,9 +188,17 @@ PUBLIC VOID ict_full()
 }
 
 /******************************************************************/
-/* return the pid of this proc                                    */
+/* return the kpid of this kproc                                  */
 /******************************************************************/
 PUBLIC DWORD ict_mypid()
 {
     return current_proc->id;
+}
+
+/******************************************************************/
+/* return the pointer of pcb of a kproc                           */
+/******************************************************************/
+PUBLIC KPROC* ict_pcb(DWORD kpid)
+{
+    return &(kernelproclist.procs[kpid]);
 }

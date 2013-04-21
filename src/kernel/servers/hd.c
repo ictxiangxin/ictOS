@@ -15,8 +15,6 @@
 #define _HD_READ    0x1
 #define _HD_WRITE   0x2
 
-PUBLIC KPROC* current_proc;
-
 PRIVATE DWORD access_kpid;
 PRIVATE DWORD lock = FALSE;
 
@@ -123,7 +121,7 @@ PRIVATE DWORD _ict_handle(DWORD sector_num, DWORD sector_sum, DWORD device, POIN
 PRIVATE DWORD _hd_read(ATADATA *pd)
 {
     wait_hd();
-    access_kpid = current_proc->id;
+    access_kpid = ict_mypid();
     ict_out(DEV_PORT(ATA_P_DEVICECONTROL), 0x0);
     ict_out(DEV_PORT(ATA_P_SECTORCOUNT), pd->seccnt >= 0x100 ? 0x0 : pd->seccnt);
     ict_out(DEV_PORT(ATA_P_LBALOW), pd->secnum & 0xff);
@@ -148,7 +146,7 @@ PRIVATE DWORD _hd_read(ATADATA *pd)
 PRIVATE DWORD _hd_write(ATADATA *pd)
 {
     wait_hd();
-    access_kpid = current_proc->id;
+    access_kpid = ict_mypid();
     ict_out(DEV_PORT(ATA_P_DEVICECONTROL), 0x0);
     ict_out(DEV_PORT(ATA_P_SECTORCOUNT), pd->seccnt >= 0x100 ? 0x0 : pd->seccnt);
     ict_out(DEV_PORT(ATA_P_LBALOW), pd->secnum & 0xff);

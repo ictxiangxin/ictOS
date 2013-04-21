@@ -9,11 +9,13 @@
 #define TRUE                    0x1
 #define FALSE                   0x0
 #define NULL                    0x0
+#define NONE                    0xffffffff
 
 #define LDT_ELEMSUM             0x4
 #define MSGBUF_SIZE             0x10
 #define MSGBUF_SUM              0x10
 #define KPROC_SUM               0x10
+
 #define KEYBOARD_BUFFER_SIZE    0x20
 
 #define DEFAULT_COLOR           COLOR_WHITE
@@ -21,7 +23,7 @@
 #define PRINT_BUFF              0x100
 
 #define OPNEFILE_SUM            0x20
-#define FDT_SIZE                0x200
+#define FDT_SIZE                0x1000
 #define FAT_BLOCK_SIZE          0x200
 #define FAT_BLOCK_SUM           0x10
 #define SECTOR_SIZE             0x200

@@ -114,7 +114,13 @@ typedef struct memrecord
     struct memrecord* next;
 } MEMRECORD;
 
-/* Kernel PCB */
+typedef struct fdpblock
+{
+    DWORD   idle;
+    POINTER fdp;
+} FDPBLOCK;
+
+/* Kernel Process PCB */
 typedef struct kproc
 {
     DWORD fs;
@@ -150,12 +156,12 @@ typedef struct kproc
     DWORD count;
     DWORD hung;
 
-    DWORD fdp[OPNEFILE_SUM];
+    FDPBLOCK fdpblock[OPNEFILE_SUM];
 
     struct kproc* next;
 } KPROC;
 
-/* Kernel processor list */
+/* Kernel Process list */
 typedef struct kproclist
 {
     KPROC procs[KPROC_SUM];

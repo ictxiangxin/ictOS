@@ -44,6 +44,7 @@ PUBLIC VOID    ict_intfor(DWORD kpid);
 PUBLIC VOID    ict_hung();
 PUBLIC VOID    ict_full();
 PUBLIC DWORD   ict_mypid();
+PUBLIC KPROC*  ict_pcb(DWORD kpid);
 
 /* msg service */
 PUBLIC VOID    init_msg();

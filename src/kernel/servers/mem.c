@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                      ICT Perfect 2.00 memory management                        */
+/*                              ictOS memory management                           */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -9,8 +9,6 @@
 #include "public.h"
 #include "kproc.h"
 #include "../io/BIOScolor.h"
-
-PUBLIC KPROC* current_proc; /* current_proc defined in "kernel/kproc.c" */
 
 PRIVATE MEMBLOCK*  usedlist; /* point to used list */
 PRIVATE MEMBLOCK*  idlelist; /* point to idle list */

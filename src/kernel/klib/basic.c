@@ -18,10 +18,19 @@ PUBLIC BYTE* ict_strcpyl(BYTE* src, BYTE* des, DWORD len)
     return des;
 }
 
+PUBLIC DWORD ict_strlen(BYTE* str)
+{
+    DWORD i = 0x0;
+    while(str[i] != '\0')
+        i++;
+    return i;
+}
+
 PUBLIC DWORD ict_strcmp(BYTE* str1, BYTE* str2)
 {
-    while(*str1++ == *str2++);
-    return *--str1 == NULL;
+    while(*str1 == *str2 && *str1 != '\0')
+        str1++, str2++;
+    return *str2 == NULL;
 }
 
 PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
