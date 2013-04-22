@@ -25,13 +25,15 @@ KERNEL_AS_OBJS = bin/kernel/kentry.o \
 # Kernel objects write by c
 KERNEL_C_OBJS = bin/kernel/kernel.o \
                 bin/kernel/klib/protect.o \
+                bin/kernel/klib/basic.o \
                 bin/kernel/servers/keyboard.o \
                 bin/kernel/servers/clock.o \
                 bin/kernel/servers/msg.o \
                 bin/kernel/servers/kproc.o \
                 bin/kernel/servers/hd.o \
                 bin/kernel/servers/mem.o \
-                bin/kernel/servers/video.o
+                bin/kernel/servers/video.o \
+                bin/kernel/servers/kfs.o
 
 install : complie setup
 
@@ -70,6 +72,7 @@ kernel/kernel.ict :
 	$(AS) $(KERNEL_AS_ARG) bin/kernel/intentry.o src/kernel/intentry.s
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/kernel.o src/kernel/kernel.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/klib/protect.o src/kernel/klib/protect.c
+	$(CC) $(KERNEL_CC_ARG) bin/kernel/klib/basic.o src/kernel/klib/basic.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/keyboard.o src/kernel/servers/keyboard.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/clock.o src/kernel/servers/clock.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/msg.o src/kernel/servers/msg.c
@@ -77,4 +80,5 @@ kernel/kernel.ict :
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/hd.o src/kernel/servers/hd.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/mem.o src/kernel/servers/mem.c
 	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/video.o src/kernel/servers/video.c
+	$(CC) $(KERNEL_CC_ARG) bin/kernel/servers/kfs.o src/kernel/servers/kfs.c
 	$(LD) -s -Ttext 0x501000 -o bin/kernel/kernel.ict $(KERNEL_AS_OBJS) $(KERNEL_C_OBJS)

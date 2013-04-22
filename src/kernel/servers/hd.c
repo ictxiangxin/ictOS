@@ -41,7 +41,7 @@ PUBLIC VOID hd_daemon()
     while(TRUE)
     {
         recv_msg(&m);
-        while(!ict_lock(&lock))
+        while(ict_lock(&lock))
             ict_done();
         switch(m.sig)   /* msg loop */
         {

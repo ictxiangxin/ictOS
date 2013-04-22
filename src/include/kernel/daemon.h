@@ -8,3 +8,4 @@ PUBLIC VOID mem_daemon();
 PUBLIC VOID keyboard_daemon();
 PUBLIC VOID hd_daemon();
 PUBLIC VOID video_daemon();
+PUBLIC VOID kfs_daemon();

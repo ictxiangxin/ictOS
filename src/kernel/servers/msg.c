@@ -84,7 +84,7 @@ PUBLIC VOID return_msg(MSG* msg, DWORD src_proc_id, DWORD sig)
 /******************************************************************/
 PUBLIC BYTE have_msg()
 {
-    return ict_pcb(ict_mypid())->havemsg;   /* just return the flag of "have msg" */
+    return ict_pcb(ict_mypid())->msgsum;   /* just return the flag of "have msg" */
 }
 
 /******************************************************************/
@@ -122,7 +122,7 @@ PUBLIC VOID msgbuf_hook ( DWORD proc_id )
         /* init the hooklist of this proc */
         ict_pcb(proc_id)->msgentry = p_kernelmsgpool->idle; /* give it a idle buf */
         p_kernelmsgpool->idle->hook = proc_id; /* mark the buf was hooked on this proc */
-        ict_pcb(proc_id)->havemsg = FALSE;
+        ict_pcb(proc_id)->msgsum = FALSE;
     }
     else /* if this task is a normal hook buf */
     {
@@ -250,7 +250,7 @@ PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasiz
         temp_ent->read_p = temp_ent->write_p; /* make the read pointer usable */
     temp_ent->write_p++; /* move the write pointer to front */
     temp_ent->write_p %= MSGBUF_SIZE; /* rollback */
-    ict_pcb(dest_proc_id)->havemsg = TRUE; /* set the flag of "have msg" */
+    ict_pcb(dest_proc_id)->msgsum++; /* set the flag of "have msg" */
     if ( ict_pcb(dest_proc_id)->status == KPS_WAITMSG )
         ict_pcb(dest_proc_id)->status = KPS_OK;
     ict_unlock(&(ict_pcb(dest_proc_id)->msglock));
@@ -285,11 +285,10 @@ PUBLIC DWORD read_msg ( MSG* msg )
         temp_ent->read_p = EMPTY_READ_P; /* the buf is empty now, and set the read_p to -1 */
         msgbuf_drop ( ict_pcb(ict_mypid())->id ); /* drop the empty buf to msg pool */
     }
-    if ( ict_pcb(ict_mypid())->msgentry->read_p == EMPTY_READ_P ) /* if the all msgs have been read */
-        ict_pcb(ict_mypid())->havemsg = FALSE; /* clear the flag of "have msg" */
     ict_unlock(&(ict_pcb(ict_mypid())->msglock));
     if(msg->sproc_id == NULL && msg->dproc_id == NULL && msg->sig == NULL) /* this is a useless msg */
         read_msg(msg);  /* read next msg */
+    ict_pcb(ict_mypid())->msgsum--;
     return TRUE; /* it means this function execute perfect */
 }
 
@@ -333,6 +332,7 @@ PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
     temp_ent->msglist[temp_read_p].dproc_id = NULL;
     temp_ent->msglist[temp_read_p].sig = NULL;
     ict_unlock(&(ict_pcb(ict_mypid())->msglock));
+    ict_pcb(ict_mypid())->msgsum--;
     return TRUE;
 }
 
@@ -360,6 +360,7 @@ PUBLIC VOID clear_msg()
     entry->read_p = EMPTY_READ_P; /* reset the read pointer */
     entry->write_p = EMPTY_WRITE_P; /* reset the write pointer */
     ict_unlock(&(ict_pcb(ict_mypid())->msglock));
+    ict_pcb(ict_mypid())->msgsum = 0x0;
 }
 
 /******************************************************************/

@@ -10,6 +10,21 @@
 #include "servers.h"
 #include "../fs/fat32struct.h"
 #include "../fs/fat32const.h"
+#include "../io/ata.h"
+
+PRIVATE VOID  _init_fa32_arg();
+PRIVATE VOID  _init_fatcache();
+PRIVATE VOID  _init_fdt();
+PRIVATE DWORD _kfs_open_sname(DWORD kpid, BYTE* filepath, DWORD mode);
+PRIVATE DWORD _find_file_sname(BYTE* filepath);
+PRIVATE BYTE* _next_filepath_sname(BYTE* filepath);
+PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY* entrybuff);
+PRIVATE VOID  _setup_sname(BYTE* filename, BYTE* sname);
+PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff);
+PRIVATE DWORD _next_fat(DWORD fat_num);
+PRIVATE DWORD _alloc_fdt();
+PRIVATE VOID  _free_fdt(DWORD fd_num);
+PRIVATE DWORD _link_to_fdpblock(DWORD kpid, POINTER fdp);
 
 PRIVATE FILEDESC* fdt; /* file description table */
 PRIVATE FATBLOCK* fatcache;
@@ -21,6 +36,8 @@ PRIVATE DWORD dataoffset;
 
 PRIVATE BYTE* tmp_sector;
 PRIVATE BYTE* tmp_cluster;
+
+PRIVATE DWORD lock = FALSE;
 
 PUBLIC VOID init_kfs()
 {
@@ -36,36 +53,27 @@ PUBLIC VOID init_kfs()
     fat32dbr = (DBR*)ict_malloc(sizeof(DBR));
     if(fat32dbr == NULL)
         return; /* crash !!!*/
-    ict_hdread(0, 1, 0, tmp_sector);
-    ict_memcpy(tmp_sector, fat32dbr, sizeof(DBR));
-    tmp_cluster = (BYTE*)ict_malloc(fat32dbr.sectors_per_cluster * SECTOR_SIZE);
-    if(tmp_cluster == NULL)
-        return;
-    fat1offset = fat32dbr.reserved_sectors + fat32dbr.offset;
-    if(fat32dbr.fat_sum == 0x2)
-    {
-        fat2offset = fat1offset + fat32dbr.fat_size;
-        dataoffset = fat2offset + fat32dbr.fat_size;
-    }
-    else
-    {
-        fat2offset = NULL;
-        dataoffset = fat1offset + fat32dbr.fat_size;
-    }
-    _init_fatcache(); /* init fat cache */
-    _init_fdt();
 }
 
 PUBLIC VOID kfs_daemon()
 {
+    while(ict_lock(&lock))
+        ict_done();
+    _init_fa32_arg(); /* init fat32 arguments */
+    ict_unlock(&lock);
     MSG m;
     while(TRUE)
     {
         recv_msg(&m);
+        while(ict_lock(&lock))
+            ict_done();
         switch(m.sig)
         {
+            case KFS_OPEN :
+                break;
         }
         dest_msg ( &m );
+        ict_unlock(&lock);
     }
 }
 
@@ -79,12 +87,43 @@ PUBLIC VOID init_fdpblock(FDPBLOCK* fdpblock)
     }
 }
 
+PUBLIC DWORD ict_open_sname(BYTE* filepath, DWORD mode)
+{
+    while(ict_lock(&lock))
+        ict_done();
+    DWORD fp = _kfs_open_sname(ict_mypid(), filepath, mode);
+    ict_unlock(&lock);
+    return fp;
+}
+
+PRIVATE VOID _init_fa32_arg()
+{
+    ict_hdread(0, 0x1, ATA_PRIMARY, tmp_sector);
+    ict_memcpy(tmp_sector, fat32dbr, sizeof(DBR));
+    tmp_cluster = (BYTE*)ict_malloc(fat32dbr->sectors_per_cluster * SECTOR_SIZE);
+    if(tmp_cluster == NULL)
+        return;
+    fat1offset = fat32dbr->reserved_sectors + fat32dbr->offset;
+    if(fat32dbr->fat_sum == 0x2)
+    {
+        fat2offset = fat1offset + fat32dbr->fat_size;
+        dataoffset = fat2offset + fat32dbr->fat_size;
+    }
+    else
+    {
+        fat2offset = NULL;
+        dataoffset = fat1offset + fat32dbr->fat_size;
+    }
+    _init_fatcache(); /* init fat cache */
+    _init_fdt();
+}
+
 PRIVATE VOID _init_fatcache()
 {
     DWORD i;
     for(i = 0; i < FAT_BLOCK_SUM; i++)
     {
-        ict_hdread(fat2offset + i, &(fatcache[i].data), 0x1);
+        ict_hdread(fat1offset + i * (FAT_BLOCK_SIZE / SECTOR_SIZE), FAT_BLOCK_SIZE / SECTOR_SIZE, ATA_PRIMARY, &(fatcache[i].data));
         fatcache[i].id = i;
         fatcache[i].time = 0x1; /* min time is 1 */
     }
@@ -106,14 +145,14 @@ PRIVATE DWORD _kfs_open_sname(DWORD kpid, BYTE* filepath, DWORD mode)
     DWORD fat_num;
     DWORD fd_num;
     DWORD fdp_num;
-    if((fat_num = _find_file_sname(filepath)) == NULL)
+    if((fat_num = _find_file_sname(filepath)) == FALSE)
         return NULL; /* no such file */
-    if((fd_num = _alloc_fdt()) == NULL)
+    if((fd_num = _alloc_fdt()) == NONE)
         return NULL; /* fdt is full */
     fdt[fd_num].fat = fat_num;
     fdt[fd_num].mode = mode;
     fdt[fd_num].offset = 0x0;
-    if((fdp_num =_link_to_fdpblock(kpid, &(fdt[fd_num]))) == NONE)
+    if((fdp_num =_link_to_fdpblock(kpid, &(fdt[fd_num]))) == NULL)
         return NULL; /* kproc can not open file */
     return fdp_num;
 }
@@ -125,20 +164,50 @@ PRIVATE DWORD _find_file_sname(BYTE* filepath)
     if(*filepath == '/')
         filepath++; /* clear '/' */
     BYTE* filename = filepath;
-    while(filepath != NULL)
+    while(filename != NULL)
     {
         if(_search_file_in_dir_sname(tmp_fat_num, filename, &tmp_entry) == FALSE)
             return FALSE; /* no such file */
         tmp_fat_num = 0x0;
-        tmp_fat_num |= tmp_entry->cluster_high;
+        tmp_fat_num |= tmp_entry.cluster_high;
         tmp_fat_num <<= 0x10;
-        tmp_fat_num |= tmp_entry->cluster_low;
-        filepath = _next_filepath_sname(filepath);
+        tmp_fat_num |= tmp_entry.cluster_low;
+        filename = _next_filepath_sname(filename);
     }
     return tmp_fat_num;
 }
-
+/*
+PRIVATE DWORD _find_file_lname(WORD* filepath)
+{
+    DWORD tmp_fat_num = ROOT_FAT;
+    if(*filepath == '/')
+        filepath++;
+    WORD* filename = filepath;
+    while(filename != NULL)
+    {
+        if(_search_file_in_dir_lname(tmp_fat_num, filename, &tmp_entry) == FALSE)
+            return FALSE; // no such file
+        tmp_fat_num = 0x0;
+        tmp_fat_num |= tmp_entry.cluster_high;
+        tmp_fat_num <<= 0x10;
+        tmp_fat_num |= tmp_entry.cluster_low;
+        filename = _next_filepath_sname(filename);
+    }
+    return tmp_fat_num;
+}
+*/
 PRIVATE BYTE* _next_filepath_sname(BYTE* filepath)
+{
+    while(*filepath != '/' && *filepath != '\0')
+        filepath++;
+    if(*filepath == '\0')
+        return NULL; /* no next file */
+    else
+        *filepath = '\0';
+    return ++filepath;
+}
+
+PRIVATE BYTE* _next_filepath_lname(WORD* filepath)
 {
     while(*filepath != '/' && *filepath != '\0')
         filepath++;
@@ -156,22 +225,28 @@ PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY
     while(fat_num != FAT_END)
     {
         _read_cluster(fat_num, tmp_cluster);
-        item = tmp_cluster;
-        while((DWORD)item < fat32dbr.sectors_per_cluster * SECTOR_SIZE)
+        item = (SDIRENTRY*)tmp_cluster;
+        while((DWORD)item - (DWORD)tmp_cluster < fat32dbr->sectors_per_cluster * SECTOR_SIZE)
         {
-            if(item->filename[0] != FLAG_CLEAN)
+            if(item->filename[0] == FLAG_CLEAN)
                 return FALSE; /* no such file */
+            if(item->filename[0] == FLAG_DEL)
+                continue;
             _setup_sname(filename, tmp_sname); /* translate to short name */
-            if(ict_strcmp(tmp_sname, item->filename))
+            if(ict_strcmpl(tmp_sname, item->filename, SNAME_LEN))
             {
                 ict_memcpy(item, entrybuff, sizeof(SDIRENTRY));
                 return TRUE; /* have this file */
             }
-            item = (DWORD)item + DIRENTRY_SIZE;
+            item = (SDIRENTRY*)((DWORD)item + DIRENTRY_SIZE);
         }
         fat_num = _next_fat(fat_num);
     }
     return FALSE; /* no such file */
+}
+
+PRIVATE DWORD _search_file_in_dir_lname(DWORD fat_num, WORD* filename, SDIRENTRY* entrybuff)
+{
 }
 
 PRIVATE VOID _setup_sname(BYTE* filename, BYTE* sname)
@@ -195,9 +270,9 @@ PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff)
     DWORD sector_num;
     DWORD err;
     cluster_num -= 0x2; /* data area start with cluster 2 */
-    sector_num = cluster_num * fat32dbr.sectors_per_cluster;
+    sector_num = cluster_num * fat32dbr->sectors_per_cluster;
     sector_num += dataoffset;
-    err = ict_hdread(sector_num, fat32dbr.sectors_per_cluster, ATA_PRIMARY, buff);
+    err = ict_hdread(sector_num, fat32dbr->sectors_per_cluster, ATA_PRIMARY, buff);
     return err;
 }
 
@@ -231,7 +306,7 @@ PRIVATE DWORD _next_fat(DWORD fat_num)
     /* increase all time */
     for(i = 0x0; i < FAT_BLOCK_SUM; i++)
         fatcache[i].time++;
-    return facache[i].data[fat_addr];
+    return fatcache[i].data[fat_addr];
 }
 
 PRIVATE DWORD _alloc_fdt()
@@ -253,12 +328,12 @@ PRIVATE VOID _free_fdt(DWORD fd_num)
 PRIVATE DWORD _link_to_fdpblock(DWORD kpid, POINTER fdp)
 {
     DWORD i;
-    for(i = 0; i < OPNEFILE_SUM; i++)
+    for(i = 0x1; i < OPNEFILE_SUM; i++)
         if(ict_pcb(kpid)->fdpblock[i].idle == TRUE)
         {
             ict_pcb(kpid)->fdpblock[i].idle = FALSE;
             ict_pcb(kpid)->fdpblock[i].fdp = fdp;
             return i;
         }
-    return NONE; /* fdp block full */
+    return NULL; /* fdp block full */
 }

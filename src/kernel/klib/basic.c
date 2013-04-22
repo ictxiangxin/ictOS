@@ -3,6 +3,9 @@
 /*                                                                        by: ict */
 /*================================================================================*/
 
+#include "type.h"
+#include "constent.h"
+
 PUBLIC BYTE* ict_strcpy(BYTE* src, BYTE* des)
 {
     while((*des++ = *src++) != '\0');
@@ -14,7 +17,7 @@ PUBLIC BYTE* ict_strcpyl(BYTE* src, BYTE* des, DWORD len)
 {
     DWORD i;
     for(i = 0; i < len; i++)
-        des[i] = scr[i];
+        des[i] = src[i];
     return des;
 }
 

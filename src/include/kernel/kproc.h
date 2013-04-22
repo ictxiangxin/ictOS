@@ -14,8 +14,8 @@
 #define PRIV_KPM            0x0
 #define PRIV_MEM            0x10
 #define PRIV_KB             0x4
-#define PRIV_HD             0x2
-#define PRIV_KFS            0x2
+#define PRIV_HD             0x4
+#define PRIV_KFS            0x8
 #define PRIV_VD             0x8
 
 #define KPS_OK              0x0

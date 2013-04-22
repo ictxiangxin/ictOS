@@ -64,13 +64,13 @@ PUBLIC VOID add_kernelproc ( POINTER func, DWORD privilege ) /* load a kernel pr
         kernelproclist.procs[proc_number - 1].next = this; /* let front proc link to this */
     this->next = & ( kernelproclist.procs[0] ); /* now this proc is end of the proc list, it must point to start */
     this->msglock = FALSE;
-    this->havemsg = FALSE;
+    this->msgsum = 0x0;
     this->haveint = FALSE;
     this->present = 1; /* now, all load works are completed, so this proc is present */
     this->id = proc_number; /* set the id of the proc */
     this->msgentry = NULL; /* prepare hook buf to this proc */
     msgbuf_hook ( this->id );
-    //init_fdpblock(this->fdpblock);
+    init_fdpblock(this->fdpblock);
     kernelproclist.proc_sum++; /* proc sum increase */
 }
 
@@ -110,7 +110,7 @@ PUBLIC VOID kpm_daemon()
                     kernelproclist.procs[msg.data].status = KPS_OK;
                 break;
             case KPM_WAITMSG : /* I will wait the msg */
-                if ( kernelproclist.procs[msg.sproc_id].havemsg == FALSE )
+                if ( kernelproclist.procs[msg.sproc_id].msgsum == FALSE )
                     kernelproclist.procs[msg.sproc_id].status = KPS_WAITMSG;
                 break;
             case KPM_WAITINT : /* I will wait the int */

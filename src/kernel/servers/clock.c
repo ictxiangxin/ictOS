@@ -23,15 +23,13 @@ PUBLIC KPROC* kpm;
 /******************************************************************/
 PUBLIC VOID init_clock()
 {
-    //ict_printf ( COLOR_YELLOW, "Setup clock service...          " );
-    DWORD t = 30; /* 0.001s */
+    DWORD t = 40; /* 0.001s */
     t = I8254_FREQUENCY * t / 1000; /* translate to the count number */
     /* set the i8254 count number system, work mode, and read/write mode */
     ict_out ( I8254_MCR, I8254_BINARY | I8254_RG | I8254_LOWHIGH );
     ict_out ( I8254_COUNTER0, ( BYTE ) t ); /* write the low byte */
     ict_out ( I8254_COUNTER0, ( BYTE ) ( t >> 0x8 ) ); /* write the high byte */
     ict_setupint ( 0x20, clock_interrupt ); /* setup the clock interrupt handle */
-    //ict_printf ( COLOR_YELLOW, "[ OK ]\n" );
 }
 
 /******************************************************************/
@@ -40,7 +38,7 @@ PUBLIC VOID init_clock()
 PUBLIC VOID int_clock ( POINTER regs )
 {
     ict_memcpy ( &regs, current_proc, 68 ); /* store all regs of proc */
-    if ( kpm->havemsg )
+    if ( kpm->msgsum )
     {
         current_proc = kpm; /* make it become current_proc, for next clock interrupt, we can make it right */
         ict_loadLDT ( current_proc->id + RESERVED_DESC_BY_KERNEL ); /* change the LDT to this proc */

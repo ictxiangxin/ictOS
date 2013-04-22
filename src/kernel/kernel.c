@@ -17,6 +17,8 @@ void testb()
 {
     MSG m;
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
+    ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>", ict_open_sname("KERNEL.ICT", 1));
+    ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>", ict_open_sname("SYSLDR.ICT", 1));
     while ( TRUE )
     {
         send_msg ( PID_KB, KB_KEY, NULL, NULL );
@@ -59,7 +61,7 @@ void testc()
             c = '0';
         if ( m.sig )
             continue;
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 100000000; i++ );
     }
 }
 
@@ -72,7 +74,7 @@ void testd()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     while ( TRUE )
     {
-        if ( send_msg ( 8, s, NULL, NULL ) )
+        if ( send_msg ( 9, s, NULL, NULL ) )
             s++;
         for ( i = 0; i < 10000000; i++ );
     }
@@ -98,7 +100,6 @@ void testf()
     int p = 0;
     char sb[] = {'-', '\\', '|', '/'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
-    char buff[0x200];
     while ( TRUE )
     {
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 11, 70 );
@@ -111,11 +112,6 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
         ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
-        buff[0] = p;
-        ict_hdwrite(0x500, 1, 0, buff);
-        buff[0] =0;
-        ict_hdread(0x500, 1, 0, buff);
-        ict_cprintf(COLOR_RED, "[%d]", buff[0]);
         for ( i = 0; i < 100000000; i++ );
     }
 }
@@ -127,6 +123,7 @@ void create_service_deamon()
     add_kernelproc ( keyboard_daemon, PRIV_KB ); /* kpid: 2 */
     add_kernelproc ( hd_daemon, PRIV_HD ); /* kpid: 3 */
     add_kernelproc ( video_daemon, PRIV_VD ); /* kpid: 4 */
+    add_kernelproc ( kfs_daemon, PRIV_KFS ); /* kpid: 5 */
 }
 
 PUBLIC KPROC* current_proc;
@@ -142,8 +139,9 @@ PUBLIC VOID kernel()
     init_clock(); /* init clock service */
     init_kb();    /* init keyboard service */
     init_hd();    /* init hard disk service */
+    init_kfs();   /* init kernel file system service */
     create_service_deamon(); /* create system service daemon */
-    add_kernelproc ( testb, 3 );
+    add_kernelproc ( testb, 5 );
     add_kernelproc ( testc, 2 );
     add_kernelproc ( testd, 3 );
     add_kernelproc ( teste, 2 );

@@ -149,7 +149,7 @@ typedef struct kproc
 
     MSGBUF* msgentry;
     DWORD   msglock;
-    DWORD   havemsg;
+    DWORD   msgsum;
     DWORD   haveint;
 
     DWORD priv;

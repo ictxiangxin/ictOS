@@ -24,3 +24,25 @@
 #define DIRENTRY_SIZE   0x20
 
 #define SNAME_LEN       0xb
+
+#define DBR_OEM
+#define DBR_SECTORS_PER_CLUSTER
+#define DBR_RESERVED_SECTORS
+#define DBR_FAT_SUM
+#define DBR_SECTORS_SUM_SMALL
+#define DBR_MEDIA
+#define DBR_SECTORS_PER_TRACK
+#define DBR_HEADS
+#define DBR_OFFSET
+#define DBR_SECTORS_SUM_BIG
+#define DBR_FAT_SIZE
+#define DBR_FLAG
+#define DBR_VERSION
+#define DBR_ROOT_CLUSTER
+#define DBR_FSINFO
+#define DBR_BACKUP_BOOT
+#define DBR_DEVICE
+#define DBR_EXTEND
+#define DBR_VOLUME_NUMBER
+#define DBR_VOLUME_TABLE
+#define DBR_FS
