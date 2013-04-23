@@ -8,6 +8,7 @@
 
 #include "type.h"
 #include "constent.h"
+#include "../fs/fat32struct.h"
 
 /* Segment Descriptor */
 typedef struct SegDesc
@@ -114,10 +115,28 @@ typedef struct memrecord
     struct memrecord* next;
 } MEMRECORD;
 
+/* File Description */
+typedef struct filedescription
+{
+    DWORD fat;      /* FAT number of this file */
+    DWORD mode;     /* open mode (read, write, read & write) */
+    DWORD offset;   /* read or write offset */
+} FDESC;
+
+/* File Entry Block */
+typedef struct fileentryblock
+{
+    DWORD idle;
+    DWORD cluster; /* location */
+    DWORD num; /* number of entry */
+    SDIRENTRY entry;
+} FEB;
+
+/* File Description Pointer Block */
 typedef struct fdpblock
 {
-    DWORD   idle;
-    POINTER fdp;
+    DWORD     idle;
+    DWORD     fdnum;
 } FDPBLOCK;
 
 /* Kernel Process PCB */
@@ -177,14 +196,6 @@ typedef struct ATAdata
     BYTE* buff; /* buffer of data */
 } ATADATA;
 
-/* File Description */
-typedef struct filedescription
-{
-    DWORD fat;      /* FAT number of this file */
-    DWORD mode;     /* open mode (read, write, read & write) */
-    DWORD offset;   /* read or write offset */
-} FILEDESC;
-
 /* FAT Cache Block */
 typedef struct fatblock
 {
@@ -193,11 +204,11 @@ typedef struct fatblock
     BYTE  data[FAT_BLOCK_SIZE];
 } FATBLOCK;
 
-/* File Contral Block */
+/* File Control Block */
 typedef struct fcb
 {
-    DWORD namemode;
-    DWORD openmode;
+    DWORD   namemode;
+    DWORD   openmode;
     POINTER filepath;
 } FCB;
 
@@ -214,8 +225,8 @@ typedef struct KeyboardBuffer
 {
     KEYBOARDNODE* free_node;
     KEYBOARDNODE* queue_entry;
-    KEYBOARDNODE buffer_node[KEYBOARD_BUFFER_SIZE];
-    DWORD used_size;
+    KEYBOARDNODE  buffer_node[KEYBOARD_BUFFER_SIZE];
+    DWORD         used_size;
 } KEYBOARDBUFFER;
 
 #endif

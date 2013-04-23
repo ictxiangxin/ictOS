@@ -27,7 +27,7 @@ void testb()
         send_msg (PID_KB, KB_KEY, NULL, NULL);
         recv_msg ( &m );
         ict_cprintf(COLOR_YELLOW, "\"%d\"", m.sig);
-        for ( i = 0; i < 1000000; i++ );
+        //for ( i = 0; i < 1000000; i++ );
     }
 }
 

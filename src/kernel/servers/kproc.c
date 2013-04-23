@@ -84,9 +84,7 @@ PUBLIC VOID kpm_daemon()
     {
         if ( !have_msg() ) /* if no msg in buf */
             ict_done(); /* no more woks */
-        //send_msg(PID_KPM, SPE_NOMSG, NULL, NULL);
-        if ( !read_msg ( &msg ) ) /* read the msg */
-            continue; /* if read fail, wait until have msg */
+        read_msg ( &msg ); /* read the msg */
         switch ( msg.sig ) /* handle each sig, which at the high 2-byte */
         {
             case KPM_HAVEMSG : /* proc has msg */

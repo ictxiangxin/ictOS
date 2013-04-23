@@ -18,6 +18,7 @@ PRIVATE VOID  _init_fatcache();
 PRIVATE VOID  _init_fdt();
 PRIVATE DWORD _kfs_open_sname(DWORD kpid, BYTE* filepath, DWORD mode);
 PRIVATE DWORD _kfs_open_lname(DWORD kpid, WORD* filepath, DWORD mode);
+PRIVATE VOID  _kfs_close(DWORD kpid, DWORD fp);
 PRIVATE DWORD _find_file_sname(BYTE* filepath);
 PRIVATE DWORD _find_file_lname(WORD* filepath);
 PRIVATE BYTE* _next_filepath_sname(BYTE* filepath);
@@ -30,9 +31,9 @@ PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff);
 PRIVATE DWORD _next_fat(DWORD fat_num);
 PRIVATE DWORD _alloc_fdt();
 PRIVATE VOID  _free_fdt(DWORD fd_num);
-PRIVATE DWORD _link_to_fdpblock(DWORD kpid, POINTER fdp);
+PRIVATE DWORD _link_to_fdpblock(DWORD kpid,DWORD fdnum);
 
-PRIVATE FILEDESC* fdt; /* file description table */
+PRIVATE FDESC*    fdt; /* file description table */
 PRIVATE FATBLOCK* fatcache;
 PRIVATE DBR*      fat32dbr;
 
@@ -47,7 +48,7 @@ PRIVATE DWORD lock = FALSE;
 
 PUBLIC VOID init_kfs()
 {
-    fdt = (FILEDESC*)ict_malloc(sizeof(FILEDESC) * FDT_SIZE);
+    fdt = (FDESC*)ict_malloc(sizeof(FDESC) * FDT_SIZE);
     if(fdt == NULL)
         return; /* crash !!! */
     fatcache = (FATBLOCK*)ict_malloc(sizeof(FATBLOCK) * FAT_BLOCK_SUM);
@@ -87,6 +88,9 @@ PUBLIC VOID kfs_daemon()
                     fp = NULL;
                 send_msg(m.sproc_id, KFS_OPENOVER, fp, NULL);
                 break;
+            case KFS_CLOSE :
+                _kfs_close(m.sproc_id, m.data);
+                break;
         }
         dest_msg ( &m );
         ict_unlock(&lock);
@@ -98,9 +102,14 @@ PUBLIC VOID init_fdpblock(FDPBLOCK* fdpblock)
     DWORD i;
     for(i = 0; i < OPNEFILE_SUM; i++)
     {
-        fdpblock[i].idle = TRUE;
-        fdpblock[i].fdp = NULL;
+        fdpblock[i].idle  = TRUE;
+        fdpblock[i].fdnum = 0x0;
     }
+}
+
+PUBLIC FDESC* ict_fd(DWORD fdnum)
+{
+    return &(fdt[fdnum]);
 }
 
 PUBLIC DWORD ict_open_sname(BYTE* filepath, DWORD mode)
@@ -137,6 +146,16 @@ PUBLIC DWORD ict_open_lname(WORD* filepath, DWORD mode)
     send_msg(PID_KFS, KFS_OPEN, (DWORD)&fcb, sizeof(FCB));
     return_msg(&m, PID_KFS, KFS_OPENOVER);
     return m.data;
+}
+
+PUBLIC VOID ict_close(DWORD fp)
+{
+    if(!ict_lock(&lock))
+    {
+        _kfs_close(ict_mypid(), fp);
+        ict_unlock(&lock);
+    }
+    send_msg(PID_KFS, KFS_CLOSE, fp, NULL);
 }
 
 PRIVATE VOID _init_fa32_arg()
@@ -195,7 +214,7 @@ PRIVATE DWORD _kfs_open_sname(DWORD kpid, BYTE* filepath, DWORD mode)
     fdt[fd_num].fat = fat_num;
     fdt[fd_num].mode = mode;
     fdt[fd_num].offset = 0x0;
-    if((fdp_num =_link_to_fdpblock(kpid, &(fdt[fd_num]))) == NULL)
+    if((fdp_num =_link_to_fdpblock(kpid, fd_num)) == NULL)
         return NULL; /* kproc can not open file */
     return fdp_num;
 }
@@ -212,9 +231,21 @@ PRIVATE DWORD _kfs_open_lname(DWORD kpid, WORD* filepath, DWORD mode)
     fdt[fd_num].fat = fat_num;
     fdt[fd_num].mode = mode;
     fdt[fd_num].offset = 0x0;
-    if((fdp_num =_link_to_fdpblock(kpid, &(fdt[fd_num]))) == NULL)
+    if((fdp_num =_link_to_fdpblock(kpid, fd_num)) == NULL)
         return NULL; /* kproc can not open file */
     return fdp_num;
+}
+
+PRIVATE VOID _kfs_close(DWORD kpid, DWORD fp)
+{
+    _free_fdt(ict_pcb(kpid)->fdpblock[fp].fdnum);
+    ict_pcb(kpid)->fdpblock[fp].idle = TRUE;
+    ict_pcb(kpid)->fdpblock[fp].fdnum = 0x0;
+}
+
+PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
+{
+    
 }
 
 PRIVATE DWORD _find_file_sname(BYTE* filepath)
@@ -448,14 +479,14 @@ PRIVATE VOID _free_fdt(DWORD fd_num)
     fdt[fd_num].offset = NULL;
 }
 
-PRIVATE DWORD _link_to_fdpblock(DWORD kpid, POINTER fdp)
+PRIVATE DWORD _link_to_fdpblock(DWORD kpid,DWORD fdnum)
 {
     DWORD i;
     for(i = 0x1; i < OPNEFILE_SUM; i++)
         if(ict_pcb(kpid)->fdpblock[i].idle == TRUE)
         {
             ict_pcb(kpid)->fdpblock[i].idle = FALSE;
-            ict_pcb(kpid)->fdpblock[i].fdp = fdp;
+            ict_pcb(kpid)->fdpblock[i].fdnum = fdnum;
             return i;
         }
     return NULL; /* fdp block full */

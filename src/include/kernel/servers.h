@@ -70,7 +70,9 @@ PUBLIC VOID    ict_cprintf(BYTE color, BYTE* format, ...);
 /* kernel file system */
 PUBLIC VOID    init_kfs();
 PUBLIC VOID    init_fdpblock(FDPBLOCK* fdpblock);
+PUBLIC FDESC*  ict_fd(DWORD fdnum);
 PUBLIC DWORD   ict_open_sname(BYTE* filepath, DWORD mode);
 PUBLIC DWORD   ict_open_lname(WORD* filepath, DWORD mode);
+PUBLIC VOID    ict_close(DWORD fp);
 
 #endif
