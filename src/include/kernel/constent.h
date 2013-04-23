@@ -28,6 +28,13 @@
 #define FAT_BLOCK_SUM           0x10
 #define SECTOR_SIZE             0x200
 
+#define FMODE_R                 0x1
+#define FMODE_W                 0x2
+#define FMODE_RW                0x3
+
+#define LNAME_MODE              0x1
+#define SNAME_MODE              0x2
+
 #define DESC_SIZE               0x8
 
 #define RESERVED_DESC_BY_KERNEL 0x8

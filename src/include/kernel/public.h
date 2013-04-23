@@ -185,12 +185,21 @@ typedef struct filedescription
     DWORD offset;   /* read or write offset */
 } FILEDESC;
 
+/* FAT Cache Block */
 typedef struct fatblock
 {
     DWORD id;
     DWORD time;
     BYTE  data[FAT_BLOCK_SIZE];
 } FATBLOCK;
+
+/* File Contral Block */
+typedef struct fcb
+{
+    DWORD namemode;
+    DWORD openmode;
+    POINTER filepath;
+} FCB;
 
 /* Keyboard Buffer Node */
 typedef struct KeyboardNode

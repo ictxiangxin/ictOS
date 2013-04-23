@@ -33,7 +33,7 @@ PUBLIC DWORD ict_strcmp(BYTE* str1, BYTE* str2)
 {
     while(*str1 == *str2 && *str1 != '\0')
         str1++, str2++;
-    return *str2 == NULL;
+    return *str1 == '\0' && *str2 == '\0';
 }
 
 PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
@@ -43,6 +43,13 @@ PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
         if(str1[i] != str2[i])
             return FALSE;
     return TRUE;
+}
+
+PUBLIC DWORD ict_ustrcmp(WORD* str1, WORD* str2)
+{
+    while(*str1 == *str2 && *str1 != '\0')
+        str1++, str2++;
+    return *str1 == '\0' && *str2 == '\0';
 }
 
 PUBLIC DWORD ict_max(DWORD* list, DWORD len)

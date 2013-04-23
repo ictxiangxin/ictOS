@@ -14,8 +14,6 @@
 /******************************************************************/
 /* signals of kproc mannager                                      */
 /******************************************************************/
-#define KPM_INIT    0x0000 /* tell kpm init all procs */
-
 #define KPM_HAVEMSG  0x0100 /* one proc have msg */
 #define KPM_HAVEINT  0x0200 /* one proc have int for it */
 #define KPM_UPPRIV   0x0300 /* increase the priv of the proc */
@@ -47,7 +45,8 @@
 /******************************************************************/
 /* signals of kernel file system                                  */
 /******************************************************************/
-#define KFS_OPEN    0x0001 /* kproc open a file */
+#define KFS_OPEN     0x0001
+#define KFS_OPENOVER 0x0002
 
 /******************************************************************/
 /* signals of video service                                       */

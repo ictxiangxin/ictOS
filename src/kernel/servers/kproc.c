@@ -82,20 +82,20 @@ PUBLIC VOID kpm_daemon()
     MSG msg; /* temp msg space */
     while ( TRUE ) /* msg loop */
     {
-        while ( !have_msg() ) /* if no msg in buf */
+        if ( !have_msg() ) /* if no msg in buf */
             ict_done(); /* no more woks */
-        send_msg(PID_KPM, SPE_NOMSG, NULL, NULL);
+        //send_msg(PID_KPM, SPE_NOMSG, NULL, NULL);
         if ( !read_msg ( &msg ) ) /* read the msg */
             continue; /* if read fail, wait until have msg */
         switch ( msg.sig ) /* handle each sig, which at the high 2-byte */
         {
             case KPM_HAVEMSG : /* proc has msg */
-                if ( kernelproclist.procs[msg.data].status == KPS_WAITMSG )
-                    kernelproclist.procs[msg.data].status = KPS_OK;
+                if ( kernelproclist.procs[msg.data].status & KPS_WAITMSG )
+                    kernelproclist.procs[msg.data].status ^= KPS_WAITMSG;
                 break;
             case KPM_HAVEINT : /* proc has int, and if the proc is OK, we must record this int */
-                if ( kernelproclist.procs[msg.data].status == KPS_WAITINT )
-                    kernelproclist.procs[msg.data].status = KPS_OK;
+                if ( kernelproclist.procs[msg.data].status & KPS_WAITINT )
+                    kernelproclist.procs[msg.data].status ^= KPS_WAITINT;
                 else /* the proc is not waiting the int */
                     kernelproclist.procs[msg.data].haveint = TRUE; /* record this int */
                 break;
@@ -106,21 +106,21 @@ PUBLIC VOID kpm_daemon()
                 kernelproclist.procs[msg.data].priv--;
                 break;
             case KPM_WAKEUP : /* wake up a proc */
-                if ( kernelproclist.procs[msg.data].status == KPS_SLEEP )
-                    kernelproclist.procs[msg.data].status = KPS_OK;
+                if ( kernelproclist.procs[msg.data].status & KPS_SLEEP )
+                    kernelproclist.procs[msg.data].status ^= KPS_SLEEP;
                 break;
             case KPM_WAITMSG : /* I will wait the msg */
-                if ( kernelproclist.procs[msg.sproc_id].msgsum == FALSE )
-                    kernelproclist.procs[msg.sproc_id].status = KPS_WAITMSG;
+                if ( kernelproclist.procs[msg.sproc_id].msgsum == NULL )
+                    kernelproclist.procs[msg.sproc_id].status |= KPS_WAITMSG;
                 break;
             case KPM_WAITINT : /* I will wait the int */
                 if ( kernelproclist.procs[msg.sproc_id].haveint == FALSE )
-                    kernelproclist.procs[msg.sproc_id].status = KPS_WAITINT;
+                    kernelproclist.procs[msg.sproc_id].status |= KPS_WAITINT;
                 else /* the proc have int before, so we clean this record and proc needn't wait */
                     kernelproclist.procs[msg.sproc_id].haveint = FALSE;
                 break;
             case KPM_SLEEP : /* I will sleep */
-                kernelproclist.procs[msg.sproc_id].status = KPS_SLEEP;
+                kernelproclist.procs[msg.sproc_id].status |= KPS_SLEEP;
                 break;
             case KPM_HUNG : /* I am hungry, need more time to execute */
                 kernelproclist.procs[msg.sproc_id].hung++;

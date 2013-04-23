@@ -10,6 +10,7 @@
 #define PID_KB              0x2
 #define PID_HD              0x3
 #define PID_VD              0x4
+#define PID_KFS             0x5
 
 #define PRIV_KPM            0x0
 #define PRIV_MEM            0x10
@@ -20,8 +21,8 @@
 
 #define KPS_OK              0x0
 #define KPS_WAITMSG         0x1
-#define KPS_WAITINT         0x2
-#define KPS_SLEEP           0x3
+#define KPS_WAITINT         0x4
+#define KPS_SLEEP           0x8
 
 #define KP_CODE_BASE        0x0
 #define KP_CODE_LIMIT       0xfffff

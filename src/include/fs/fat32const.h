@@ -24,6 +24,9 @@
 #define DIRENTRY_SIZE   0x20
 
 #define SNAME_LEN       0xb
+#define LNAME_LEN       0xff
+
+#define LNAME_PER_ENTRY 0xd
 
 #define DBR_OEM
 #define DBR_SECTORS_PER_CLUSTER

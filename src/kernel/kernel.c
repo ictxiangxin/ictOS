@@ -16,14 +16,18 @@
 void testb()
 {
     MSG m;
+    DWORD i;
+    BYTE buff[512];
+    WORD ln[] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
-    ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>", ict_open_sname("KERNEL.ICT", 1));
-    ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>", ict_open_sname("SYSLDR.ICT", 1));
+    ict_cprintf( COLOR_RED, "open file TEST/KERNEL.ICT : <%d>\n", ict_open_sname("TEST/KERNEL.ICT", 1));
+    ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>\n", ict_open_lname(ln, 1));
     while ( TRUE )
     {
-        send_msg ( PID_KB, KB_KEY, NULL, NULL );
+        send_msg (PID_KB, KB_KEY, NULL, NULL);
         recv_msg ( &m );
-        ict_cprintf(COLOR_YELLOW, "\"%d\"", m.sproc_id);
+        ict_cprintf(COLOR_YELLOW, "\"%d\"", m.sig);
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -61,7 +65,7 @@ void testc()
             c = '0';
         if ( m.sig )
             continue;
-        for ( i = 0; i < 100000000; i++ );
+        for ( i = 0; i < 10000000; i++ );
     }
 }
 
@@ -74,7 +78,7 @@ void testd()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     while ( TRUE )
     {
-        if ( send_msg ( 9, s, NULL, NULL ) )
+        if ( send_msg ( 9, s, NULL, NULL ))
             s++;
         for ( i = 0; i < 10000000; i++ );
     }

@@ -33,7 +33,7 @@ PUBLIC POINTER msg_malloc(DWORD size);
 PUBLIC DWORD   msg_free(POINTER addr);
 PUBLIC DWORD   ict_idlesize();
 
-/* kernel proc management */
+/* kernel process management */
 PUBLIC VOID    init_kproc();
 PUBLIC VOID    kpm_daemon();
 PUBLIC VOID    add_kernelproc(POINTER func, DWORD privilege);
@@ -46,7 +46,7 @@ PUBLIC VOID    ict_full();
 PUBLIC DWORD   ict_mypid();
 PUBLIC KPROC*  ict_pcb(DWORD kpid);
 
-/* msg service */
+/* message service */
 PUBLIC VOID    init_msg();
 PUBLIC VOID    msgbuf_hook(DWORD proc_id);
 PUBLIC DWORD   send_msg(DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasize);
@@ -66,5 +66,11 @@ PUBLIC VOID    call_dropchar(BYTE c, BYTE color, DWORD x, DWORD y);
 PUBLIC VOID    msg_dropchar(BYTE c, BYTE color, DWORD x, DWORD y);
 PUBLIC VOID    ict_printf(BYTE* format, ...);
 PUBLIC VOID    ict_cprintf(BYTE color, BYTE* format, ...);
+
+/* kernel file system */
+PUBLIC VOID    init_kfs();
+PUBLIC VOID    init_fdpblock(FDPBLOCK* fdpblock);
+PUBLIC DWORD   ict_open_sname(BYTE* filepath, DWORD mode);
+PUBLIC DWORD   ict_open_lname(WORD* filepath, DWORD mode);
 
 #endif

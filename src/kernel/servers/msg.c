@@ -31,13 +31,11 @@ PRIVATE VOID null_msg(MSG* msg);
 /******************************************************************/
 PUBLIC VOID init_msg()
 {
-    //ict_cprintf ( COLOR_YELLOW, "Setup message service...        " );
     p_kernelmsgpool = ( MSGPOOL* ) msg_malloc ( sizeof ( MSGPOOL ) ); /* get new space of msg pool */
     init_msgpool ( p_kernelmsgpool ); /* init the msg pool */
     /* build msgpool linklist */
     p_kernelmsgpool->back = p_kernelmsgpool;
     p_kernelmsgpool->next = p_kernelmsgpool;
-    //ict_cprintf ( COLOR_YELLOW, "[ OK ]\n" );
 }
 
 /******************************************************************/
@@ -62,6 +60,8 @@ PUBLIC VOID recv_msg ( MSG* msg )
         send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
         ict_done(); /* nothing to do */
     }
+if(ict_pcb(ict_mypid())->msgsum == 0x0)
+    ict_printf("$");
     read_msg ( msg ); /* when I awake, it means have msg to me */
 }
 
@@ -117,12 +117,12 @@ PUBLIC VOID msgbuf_hook ( DWORD proc_id )
         p_kernelmsgpool->next = newmsgpool;
         p_kernelmsgpool = newmsgpool;
     }
-    if ( ict_pcb(proc_id)->msgentry == 0 ) /* if the proc was not init its msg hooklist */
+    if ( ict_pcb(proc_id)->msgentry == NULL ) /* if the proc was not init its msg hooklist */
     {
         /* init the hooklist of this proc */
         ict_pcb(proc_id)->msgentry = p_kernelmsgpool->idle; /* give it a idle buf */
         p_kernelmsgpool->idle->hook = proc_id; /* mark the buf was hooked on this proc */
-        ict_pcb(proc_id)->msgsum = FALSE;
+        ict_pcb(proc_id)->msgsum = 0x0;
     }
     else /* if this task is a normal hook buf */
     {
@@ -215,9 +215,8 @@ msgbuf_drop_end:
 /******************************************************************/
 PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasize )
 {
-    if ( ict_pcb(dest_proc_id)->status == KPS_SLEEP )    /* if the proc is sleep */
+    if ( ict_pcb(dest_proc_id)->status & KPS_SLEEP )    /* if the proc is sleep */
     {
-        ict_sti();  /* all works done, open interrupt */
         return FALSE;   /* can not send msg to it */
     }
     while(ict_lock(&(ict_pcb(dest_proc_id)->msglock)))
@@ -252,7 +251,7 @@ PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasiz
     temp_ent->write_p %= MSGBUF_SIZE; /* rollback */
     ict_pcb(dest_proc_id)->msgsum++; /* set the flag of "have msg" */
     if ( ict_pcb(dest_proc_id)->status == KPS_WAITMSG )
-        ict_pcb(dest_proc_id)->status = KPS_OK;
+        ict_pcb(dest_proc_id)->status ^= KPS_WAITMSG;
     ict_unlock(&(ict_pcb(dest_proc_id)->msglock));
     return TRUE; /* send msg successful */
 }
@@ -285,10 +284,14 @@ PUBLIC DWORD read_msg ( MSG* msg )
         temp_ent->read_p = EMPTY_READ_P; /* the buf is empty now, and set the read_p to -1 */
         msgbuf_drop ( ict_pcb(ict_mypid())->id ); /* drop the empty buf to msg pool */
     }
-    ict_unlock(&(ict_pcb(ict_mypid())->msglock));
     if(msg->sproc_id == NULL && msg->dproc_id == NULL && msg->sig == NULL) /* this is a useless msg */
+    {
+        ict_unlock(&(ict_pcb(ict_mypid())->msglock));
         read_msg(msg);  /* read next msg */
-    ict_pcb(ict_mypid())->msgsum--;
+    }
+    else
+        ict_pcb(ict_mypid())->msgsum--;
+    ict_unlock(&(ict_pcb(ict_mypid())->msglock));
     return TRUE; /* it means this function execute perfect */
 }
 
@@ -331,8 +334,8 @@ PUBLIC DWORD search_msg( MSG* msg, DWORD src_proc_id, DWORD sig )
     temp_ent->msglist[temp_read_p].sproc_id = NULL;
     temp_ent->msglist[temp_read_p].dproc_id = NULL;
     temp_ent->msglist[temp_read_p].sig = NULL;
-    ict_unlock(&(ict_pcb(ict_mypid())->msglock));
     ict_pcb(ict_mypid())->msgsum--;
+    ict_unlock(&(ict_pcb(ict_mypid())->msglock));
     return TRUE;
 }
 
