@@ -737,8 +737,6 @@ ErrorMsg db \
 "[#MC] Machine Check !!!                               ", \
 "[#XF] SIMD Float Exception !!!                        "
 
-bug:    times   0x10    db 0x0 ; here is a bug that i can't find it.
-
 CrashMsg db \
 "+==============================================================================+", \
 "|                               ictOS Crash !!!                                |", \

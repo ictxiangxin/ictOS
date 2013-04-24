@@ -46,9 +46,9 @@
 
 #define DESC_ATTR_LDT       0x0082
 #define DA_PCODE            0xc0b8 /* 1100000010111000 */
-#define DA_PDATA            0x80b2
-#define DA_PSTACK           0x80b2
-#define DA_PVIDEO           0x00b2
+#define DA_PDATA            0xc0b2
+#define DA_PSTACK           0xc0b2
+#define DA_PVIDEO           0x40b2
 
 #define KPROC_CODE_SLT      0x0000 | SELECTOR_LDT | SLT_RING_1
 #define KPROC_DATA_SLT      0x0008 | SELECTOR_LDT | SLT_RING_1

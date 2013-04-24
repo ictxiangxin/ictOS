@@ -15,6 +15,7 @@
 
 void testb()
 {
+    ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     MSG m;
     DWORD i;
     BYTE buff[512];
@@ -42,9 +43,6 @@ void testc()
     MSG m;
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     send_msg ( PID_KB, KB_KEYS, NULL, NULL );
-    //void (*f)();
-    //f = 0xffffffff;
-    //(*f)();
     while ( TRUE )
     {
         read_msg ( &m );
@@ -56,6 +54,9 @@ void testc()
             x = x == 24 ? 24 : x + 1;
         if ( m.sig == 32 )
             y = y == 79 ? 79 : y + 1;
+        //void (*f)();
+        //f = 0xffffffff;
+        //(*f)();
         call_dropchar ( c, color, x, y );
         call_dropchar ( c, color, x, y - 1 );
         call_dropchar ( c, color, x, y + 1 );

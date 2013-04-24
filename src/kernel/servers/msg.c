@@ -60,8 +60,6 @@ PUBLIC VOID recv_msg ( MSG* msg )
         send_msg ( PID_KPM, KPM_WAITMSG, NULL, NULL ); /* tell the kpm that I will wait for msg */
         ict_done(); /* nothing to do */
     }
-if(ict_pcb(ict_mypid())->msgsum == 0x0)
-    ict_printf("$");
     read_msg ( msg ); /* when I awake, it means have msg to me */
 }
 
