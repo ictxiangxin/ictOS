@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                              ictOS FAT32 structure                             */
+/*                              ictOS FAT32 Structure                             */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -37,7 +37,7 @@ typedef struct dbr
     DWORD   volume_number;
     BYTE    volume_table[0xb];
     BYTE    fs[0x8];
-} __attribute__((packed))  DBR;
+} __attribute__((packed)) DBR;
 
 typedef struct short_directory_entry
 {
@@ -53,7 +53,7 @@ typedef struct short_directory_entry
     WORD    change_date;
     WORD    cluster_low;
     DWORD   size;
-} __attribute__((packed))  SDIRENTRY; 
+} __attribute__((packed)) SDIRENTRY; 
 
 typedef struct long_directory_entry
 {
@@ -65,6 +65,6 @@ typedef struct long_directory_entry
     WORD    filename_6_11[0x6];
     WORD    reserved2;
     WORD    filename_12_13[0x2];
-} __attribute__((packed))  LDIRENTRY;
+} __attribute__((packed)) LDIRENTRY;
 
 #endif

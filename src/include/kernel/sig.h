@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                              ictOS signals of msg                              */
+/*                            ictOS Signals of Message                            */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -48,6 +48,12 @@
 #define KFS_OPEN        0x0001
 #define KFS_OPENOVER    0x0002
 #define KFS_CLOSE       0x0003
+#define KFS_READ        0x0004
+#define KFS_WRITE       0x0005
+#define KFS_READOVER    0x0006
+#define KFS_WRITEOVER   0x0007
+#define KFS_SEEK        0x0008
+#define KFS_SEEKOVER    0x0009
 
 /******************************************************************/
 /* signals of video service                                       */

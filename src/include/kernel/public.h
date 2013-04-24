@@ -119,6 +119,7 @@ typedef struct memrecord
 typedef struct filedescription
 {
     DWORD fat;      /* FAT number of this file */
+    DWORD febnum;
     DWORD mode;     /* open mode (read, write, read & write) */
     DWORD offset;   /* read or write offset */
 } FDESC;
@@ -127,8 +128,9 @@ typedef struct filedescription
 typedef struct fileentryblock
 {
     DWORD idle;
-    DWORD cluster; /* location */
-    DWORD num; /* number of entry */
+    DWORD fatnum; /* location */
+    DWORD entrynum; /* number of entry */
+    DWORD access;
     SDIRENTRY entry;
 } FEB;
 
@@ -211,6 +213,22 @@ typedef struct fcb
     DWORD   openmode;
     POINTER filepath;
 } FCB;
+
+/* Read an Write Control Block */
+typedef struct readwritecontrolblock
+{
+    DWORD fp;
+    DWORD size;
+    POINTER buff;
+} RWCB;
+
+/* Seek Control Block */
+typedef struct seekcontrolblock
+{
+    DWORD fp;
+    DWORD offset;
+    DWORD origin;
+} SCB;
 
 /* Keyboard Buffer Node */
 typedef struct KeyboardNode

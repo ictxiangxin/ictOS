@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                         ictOS Servers functions Header                         */
+/*                         ictOS Servers Functions Header                         */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -73,6 +73,8 @@ PUBLIC VOID    init_fdpblock(FDPBLOCK* fdpblock);
 PUBLIC FDESC*  ict_fd(DWORD fdnum);
 PUBLIC DWORD   ict_open_sname(BYTE* filepath, DWORD mode);
 PUBLIC DWORD   ict_open_lname(WORD* filepath, DWORD mode);
+PUBLIC DWORD   ict_read(DWORD fp, DWORD size, POINTER buff);
+PUBLIC DWORD   ict_seek(DWORD fp, DWORD offset, DWORD origin);
 PUBLIC VOID    ict_close(DWORD fp);
 
 #endif

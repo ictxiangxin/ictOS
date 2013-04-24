@@ -1,5 +1,5 @@
 ;==============================================================================;
-;               ICT Perfect 2.00 Basic functions for c language                ;
+;                             ictOS Asm Functions                              ;
 ;                                                                      by: ict ;
 ;==============================================================================;
 
@@ -13,7 +13,7 @@ EBP_FIRST_ARG   equ     0x8
 ESP_FIRST_ARG   equ     0x4
 NEXT_ARG        equ     0x4
 
-ICT_PUTCHAR_COLOR   equ     color_white
+DEFAULT_COLOR   equ     color_white
 
 SCREEN_HIGH     equ     0x19
 SCREEN_WIDTH    equ     0x50
@@ -44,7 +44,7 @@ global ict_done
 [bits 32]
 ;==============================================================================;
 ; send a byte to port                                                          ;
-; void ict_out(int port, char data);                                           ;
+; VOID ict_out(DWORD port, BYTE data);                                         ;
 ;==============================================================================;
 ict_out:
     mov     edx, dword [esp + ESP_FIRST_ARG] ; edx = port
@@ -55,7 +55,7 @@ ict_out:
 
 ;==============================================================================;
 ; translate data word by word from buff to port                                ;
-; char ict_outs(int port, char* buf, int size);                                ;
+; BYTE ict_outs(DWORD port, BYTE* buf, DWORD size);                            ;
 ;==============================================================================;
 ict_outs:
     push    ebp
@@ -74,7 +74,7 @@ ict_outs:
 
 ;==============================================================================;
 ; receive a byte from port                                                     ;
-; char ict_in(int port);                                                       ;
+; BYTE ict_in(DWORD port);                                                     ;
 ;==============================================================================;
 ict_in:
     mov     edx, dword [esp + ESP_FIRST_ARG] ; edx = port
@@ -85,7 +85,7 @@ ict_in:
 
 ;==============================================================================;
 ; translate data word by word from port to buff                                ;
-; char ict_ins(int port, char* buf, int size);                                 ;
+; BYTE ict_ins(DWORD port, BYTE* buf, DWORD size);                             ;
 ;==============================================================================;
 ict_ins:
     push    ebp
@@ -104,7 +104,7 @@ ict_ins:
 
 ;==============================================================================;
 ; clear interrupt flag                                                         ;
-; char ict_cli();                                                              ;
+; VOID ict_cli();                                                              ;
 ;==============================================================================;
 ict_cli:
     cli ; clear interrupt flag
@@ -112,7 +112,7 @@ ict_cli:
 
 ;==============================================================================;
 ; set interrupt flag                                                           ;
-; char ict_sti();                                                              ;
+; VOID ict_sti();                                                              ;
 ;==============================================================================;
 ict_sti:
     sti ; set interrupt flag
@@ -120,7 +120,7 @@ ict_sti:
 
 ;==============================================================================;
 ; test and lock                                                                ;
-; DWORD ict_lock(POINTER lock);                                                ;
+; DWORD ict_lock(DWORD* lock);                                                 ;
 ;==============================================================================;
 ict_lock:
     mov eax, 0x1
@@ -130,7 +130,7 @@ ict_lock:
 
 ;==============================================================================;
 ; unlock                                                                       ;
-; VOID ict_lock(POINTER lock);                                                 ;
+; VOID ict_unlock(DWORD* lock);                                                ;
 ;==============================================================================;
 ict_unlock:
     mov edx, dword [esp + ESP_FIRST_ARG]
@@ -139,7 +139,7 @@ ict_unlock:
 
 ;==============================================================================;
 ; copy a memory block to destination                                           ;
-; void ict_memcpy(void* source, void* destination, int size);                  ;
+; VOID ict_memcpy(POINTER source, POINTER destination, DWORD size);            ;
 ;==============================================================================;
 ict_memcpy:
     push    ebp
@@ -286,7 +286,7 @@ ict_refreshvideo:
     cld
     rep movsw
     mov     al, 0x20 ; use space to fill
-    mov     ah, ICT_PUTCHAR_COLOR ; set the color
+    mov     ah, DEFAULT_COLOR ; set the color
     mov     ecx, dword [ebp + EBP_FIRST_ARG + NEXT_ARG + NEXT_ARG + NEXT_ARG]
     sub     ecx, ebx
     mov     edi, VIDEO_LOCATION
@@ -300,7 +300,7 @@ ict_refreshvideo:
 
 ;==============================================================================;
 ; setup a interrupt to IDT                                                     ;
-; void ict_setupint(int int_number, void* int_func);                           ;
+; VOID ict_setupint(DWORD int_number, POINTER int_func);                       ;
 ;==============================================================================;
 ict_setupint:
     push    ebp
@@ -324,7 +324,7 @@ ict_setupint:
 
 ;==============================================================================;
 ; load the LDT to memory and set the ldtr                                      ;
-; void ict_loadLDT(int GD_number);                                             ;
+; VOID ict_loadLDT(DWORD GD_number);                                           ;
 ;==============================================================================;
 ict_loadLDT:
     mov     eax, dword [esp + ESP_FIRST_ARG] ; eax = GD_number
@@ -334,7 +334,7 @@ ict_loadLDT:
 
 ;==============================================================================;
 ; load the GDT to memory                                                       ;
-; void ict_loadGD(SEGDESC* gd_temp, int number);                               ;
+; VOID ict_loadGD(SEGDESC* gd_temp, DWORD number);                             ;
 ;==============================================================================;
 ict_loadGD:
     push    ebp
@@ -355,7 +355,7 @@ ict_loadGD:
 
 ;==============================================================================;
 ; execute the process                                                          ;
-; void ict_execut(kPROC* proc);                                                ;
+; VOID ict_execut(kPROC* proc);                                                ;
 ;==============================================================================;
 ict_execute:
     cli ; close the interrupt
@@ -375,7 +375,7 @@ ict_execute:
 
 ;==============================================================================;
 ; kproc's works done, it must change to another kproc                          ;
-; void ict_done();                                                             ;
+; VOID ict_done();                                                             ;
 ;==============================================================================;
 ict_done:
     int     CLOCK_INT

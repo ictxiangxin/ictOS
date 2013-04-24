@@ -1,7 +1,8 @@
 /*================================================================================*/
-/*                                ictOS kernel Main                               */
+/*                          ictOS kernel Main Function                            */
 /*                                                                        by: ict */
 /*================================================================================*/
+
 #include "kasm.h"
 #include "servers.h"
 #include "public.h"
@@ -21,8 +22,11 @@ void testb()
     BYTE buff[512];
     WORD ln[] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
-    ict_cprintf( COLOR_RED, "open file TEST/KERNEL.ICT : <%d>\n", ict_open_sname("TEST/KERNEL.ICT", 1));
+    ict_cprintf( COLOR_RED, "open file TEST/TEST.ICT : <%d>\n", ict_open_sname("TEST/TEST.TXT", 1));
     ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>\n", ict_open_lname(ln, 1));
+    ict_seek(1, 3, SEEK_START);
+    ict_read(1, 512, buff);
+    ict_printf("{%s}", buff);
     while ( TRUE )
     {
         send_msg (PID_KB, KB_KEY, NULL, NULL);
@@ -116,7 +120,7 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 72 );
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
-        ict_cprintf(COLOR_GREEN, "[%d]", ict_idlesize());
+        ict_cprintf(COLOR_GREEN, "[0x%x]", ict_idlesize());
         for ( i = 0; i < 100000000; i++ );
     }
 }

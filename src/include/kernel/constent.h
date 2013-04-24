@@ -1,5 +1,5 @@
 /*================================================================================*/
-/*                               ictOS global constent                            */
+/*                               ictOS Global Constent                            */
 /*                                                                        by: ict */
 /*================================================================================*/
 
@@ -25,6 +25,7 @@
 
 #define OPNEFILE_SUM            0x20
 #define FDT_SIZE                0x1000
+#define FEBT_SIZE               FDT_SIZE
 #define FAT_BLOCK_SIZE          0x200
 #define FAT_BLOCK_SUM           0x10
 #define SECTOR_SIZE             0x200
@@ -35,6 +36,10 @@
 
 #define LNAME_MODE              0x1
 #define SNAME_MODE              0x2
+
+#define SEEK_START              0x0
+#define SEEK_CURRENT            0x1
+#define SEEK_END                0x2
 
 #define DESC_SIZE               0x8
 
