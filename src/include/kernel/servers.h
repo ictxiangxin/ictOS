@@ -74,6 +74,7 @@ PUBLIC FDESC*  ict_fd(DWORD fdnum);
 PUBLIC DWORD   ict_open_sname(BYTE* filepath, DWORD mode);
 PUBLIC DWORD   ict_open_lname(WORD* filepath, DWORD mode);
 PUBLIC DWORD   ict_read(DWORD fp, DWORD size, POINTER buff);
+PUBLIC DWORD   ict_write(DWORD fp, DWORD size, POINTER buff);
 PUBLIC DWORD   ict_seek(DWORD fp, DWORD offset, DWORD origin);
 PUBLIC VOID    ict_close(DWORD fp);
 

@@ -248,7 +248,7 @@ PUBLIC DWORD send_msg ( DWORD dest_proc_id, DWORD sig, DWORD data, DWORD datasiz
     temp_ent->write_p++; /* move the write pointer to front */
     temp_ent->write_p %= MSGBUF_SIZE; /* rollback */
     ict_pcb(dest_proc_id)->msgsum++; /* set the flag of "have msg" */
-    if ( ict_pcb(dest_proc_id)->status == KPS_WAITMSG )
+    if ( ict_pcb(dest_proc_id)->status & KPS_WAITMSG )
         ict_pcb(dest_proc_id)->status ^= KPS_WAITMSG;
     ict_unlock(&(ict_pcb(dest_proc_id)->msglock));
     return TRUE; /* send msg successful */

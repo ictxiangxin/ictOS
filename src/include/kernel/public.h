@@ -203,6 +203,7 @@ typedef struct fatblock
 {
     DWORD id;
     DWORD time;
+    DWORD change;
     BYTE  data[FAT_BLOCK_SIZE];
 } FATBLOCK;
 

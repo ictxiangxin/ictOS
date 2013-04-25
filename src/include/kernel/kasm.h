@@ -15,6 +15,7 @@ PUBLIC BYTE  ict_sti();	/* set interrupt flag */
 PUBLIC DWORD ict_lock(DWORD* lock);
 PUBLIC VOID  ict_unlock(DWORD* lock);
 PUBLIC VOID  ict_memcpy(POINTER source, POINTER destination, DWORD size);
+PUBLIC VOID  ict_clear(POINTER mem, DWORD size);
 PUBLIC DWORD ict_cursorlocation();
 PUBLIC VOID  ict_setcursor(DWORD loc);
 PUBLIC DWORD ict_startlocation();

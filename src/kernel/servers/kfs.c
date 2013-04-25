@@ -13,6 +13,11 @@
 #include "../fs/fat32const.h"
 #include "../io/ata.h"
 
+#define _KFS_READ   0x0
+#define _KFS_WRITE  0x1
+#define _KFS_EXTEND 0x0
+#define _KFS_ALLOC  0x1
+
 PRIVATE VOID  _init_fat32_arg();
 PRIVATE VOID  _init_fatcache();
 PRIVATE VOID  _init_fdt();
@@ -21,7 +26,10 @@ PRIVATE DWORD _ict_open(POINTER filepath, DWORD mode, DWORD namemode);
 PRIVATE DWORD _kfs_open(DWORD kpid, POINTER filepath, DWORD mode, DWORD namemode);
 PRIVATE VOID  _kfs_close(DWORD kpid, DWORD fp);
 PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff);
+PRIVATE DWORD _kfs_write(DWORD kpid, DWORD fp, DWORD size, POINTER buff);
 PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin);
+PRIVATE DWORD _creat_file_sname(DWORD dir_fat, BYTE* filename);
+PRIVATE POINTER _alloc_entry(DWORD dir_fat);
 PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry);
 PRIVATE DWORD _find_file_lname(WORD* filepath, SDIRENTRY* entry);
 PRIVATE BYTE* _next_filepath_sname(BYTE* filepath);
@@ -30,9 +38,14 @@ PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY
 PRIVATE DWORD _search_file_in_dir_lname(DWORD fat_num, WORD* filename, SDIRENTRY* entrybuff);
 PRIVATE VOID  _setup_sname(BYTE* filename, BYTE* sname);
 PRIVATE VOID  _build_lname(LDIRENTRY* entry, WORD* sname);
-PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff, DWORD sum);
+PRIVATE DWORD _rw_cluster(DWORD cluster_num, BYTE* buff, DWORD sum, DWORD mode);
 PRIVATE DWORD _cluster_string(DWORD *fat_num, DWORD maxlen);
+PRIVATE DWORD _cluster_extend(DWORD fat_num, DWORD sum);
+PRIVATE DWORD _cluster_alloc(DWORD start_fat, DWORD sum, DWORD mode);
 PRIVATE DWORD _next_fat(DWORD fat_num);
+PRIVATE DWORD _fat_in_cache(DWORD fat_num);
+PRIVATE DWORD _writeback_fatblock(DWORD fatblock_num);
+PRIVATE DWORD _writeback_fatcache();
 PRIVATE DWORD _alloc_fdt();
 PRIVATE VOID  _free_fdt(DWORD fd_num);
 PRIVATE DWORD _alloc_febt(DWORD cluster, DWORD num);
@@ -44,6 +57,7 @@ PRIVATE FEB*      febt; /* FEB table */
 PRIVATE FATBLOCK* fatcache;
 PRIVATE DBR*      fat32dbr;
 PRIVATE DWORD     clustersize;
+PRIVATE DWORD     cache_mask = 0xffffffc0;
 
 PRIVATE DWORD fat1offset;
 PRIVATE DWORD fat2offset;
@@ -76,6 +90,7 @@ PUBLIC VOID kfs_daemon()
         ict_done();
     _init_fat32_arg(); /* init fat32 arguments */
     ict_unlock(&lock);
+    _creat_file_sname(2, "XIANGXIN");
     FCB* fcb;
     RWCB* rwcb;
     SCB* scb;
@@ -110,6 +125,7 @@ PUBLIC VOID kfs_daemon()
                 break;
         }
         dest_msg ( &m );
+        _writeback_fatcache();
         ict_unlock(&lock);
     }
 }
@@ -139,11 +155,23 @@ PUBLIC DWORD ict_open_lname(WORD* filepath, DWORD mode)
     return _ict_open(filepath, mode, LNAME_MODE);
 }
 
+PUBLIC VOID ict_close(DWORD fp)
+{
+    if(!ict_lock(&lock))
+    {
+        _kfs_close(ict_mypid(), fp);
+        _writeback_fatcache();
+        ict_unlock(&lock);
+    }
+    send_msg(PID_KFS, KFS_CLOSE, fp, NULL);
+}
+
 PUBLIC DWORD ict_read(DWORD fp, DWORD size, POINTER buff)
 {
     if(!ict_lock(&lock))
     {
         DWORD readsize = _kfs_read(ict_mypid(), fp, size, buff);
+        _writeback_fatcache();
         ict_unlock(&lock);
         return readsize;
     }
@@ -157,11 +185,31 @@ PUBLIC DWORD ict_read(DWORD fp, DWORD size, POINTER buff)
     return m.data;
 }
 
+PUBLIC DWORD ict_write(DWORD fp, DWORD size, POINTER buff)
+{
+    if(!ict_lock(&lock))
+    {
+        DWORD writesize = _kfs_write(ict_mypid(), fp, size, buff);
+        _writeback_fatcache();
+        ict_unlock(&lock);
+        return writesize;
+    }
+    RWCB rwcb;
+    rwcb.fp = fp;
+    rwcb.size = size;
+    rwcb.buff = buff;
+    MSG m;
+    send_msg(PID_KFS, KFS_WRITE, (DWORD)&rwcb, sizeof(RWCB));
+    return_msg(&m, PID_KFS, KFS_WRITEOVER);
+    return m.data;
+}
+
 PUBLIC DWORD ict_seek(DWORD fp, DWORD offset, DWORD origin)
 {
     if(!ict_lock(&lock))
     {
         DWORD loc = _kfs_seek(ict_mypid(), fp, offset, origin);
+        _writeback_fatcache();
         ict_unlock(&lock);
         return loc;
     }
@@ -175,18 +223,14 @@ PUBLIC DWORD ict_seek(DWORD fp, DWORD offset, DWORD origin)
     return m.data;
 }
 
-PUBLIC VOID ict_close(DWORD fp)
-{
-    if(!ict_lock(&lock))
-    {
-        _kfs_close(ict_mypid(), fp);
-        ict_unlock(&lock);
-    }
-    send_msg(PID_KFS, KFS_CLOSE, fp, NULL);
-}
-
 PRIVATE VOID _init_fat32_arg()
 {
+    DWORD tmp = FAT_BLOCK_SIZE / SECTOR_SIZE;
+    while(tmp)
+    {
+        cache_mask <<= 0x1;
+        tmp >>= 0x1;
+    }
     ict_hdread(0, 0x1, ATA_PRIMARY, tmp_sector);
     ict_memcpy(tmp_sector, fat32dbr, sizeof(DBR));
     tmp_cluster = (BYTE*)ict_malloc(fat32dbr->sectors_per_cluster * SECTOR_SIZE);
@@ -211,12 +255,15 @@ PRIVATE VOID _init_fat32_arg()
 
 PRIVATE VOID _init_fatcache()
 {
+    DWORD sector_num;
     DWORD i;
-    for(i = 0; i < FAT_BLOCK_SUM; i++)
+    for(i = 0x0; i < FAT_BLOCK_SUM; i++)
     {
-        ict_hdread(fat1offset + i * (FAT_BLOCK_SIZE / SECTOR_SIZE), FAT_BLOCK_SIZE / SECTOR_SIZE, ATA_PRIMARY, &(fatcache[i].data));
-        fatcache[i].id = i;
+        sector_num = fat1offset + i * (FAT_BLOCK_SIZE / SECTOR_SIZE);
+        ict_hdread(sector_num, FAT_BLOCK_SIZE / SECTOR_SIZE, ATA_PRIMARY, &(fatcache[i].data));
+        fatcache[i].id = i * (FAT_BLOCK_SIZE / 0x4);
         fatcache[i].time = 0x1; /* min time is 1 */
+        fatcache[i].change = FALSE;
     }
 }
 
@@ -275,9 +322,13 @@ PRIVATE DWORD _kfs_open(DWORD kpid, POINTER filepath, DWORD mode, DWORD namemode
        )
        == FALSE
       )
+    {
         return NULL; /* no such file */
+    }
     if((fd_num = _alloc_fdt()) == NONE)
+    {
         return NULL; /* fdt is full */
+    }
     if((fdp_num =_link_to_fdpblock(kpid, fd_num)) == NULL)
     {
         _free_fdt(fd_num);
@@ -309,6 +360,8 @@ PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
 {
     if(ict_pcb(kpid)->fdpblock[fp].idle == TRUE)
         return NONE;
+    if((ict_fd(ict_pcb(kpid)->fdpblock[fp].fdnum)->mode & FMODE_R) == NULL)
+        return NONE;
     FDESC* fd = ict_fd(ict_pcb(kpid)->fdpblock[fp].fdnum);
     FEB* feb = &(febt[fd->febnum]);
     DWORD fat_num = fd->fat;
@@ -335,7 +388,7 @@ PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
     }
     if(fat_num != FAT_END)
     {
-        _read_cluster(fat_num, tmp_sector, 0x1);
+        _rw_cluster(fat_num, tmp_sector, 0x1, _KFS_READ);
         ict_memcpy(tmp_sector + skipsize, _buff, size < clustersize ? size : (clustersize - skipsize));
         _buff += clustersize - skipsize;
     }
@@ -343,14 +396,77 @@ PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
     {
         cstrlen = _cluster_string(&fat_num, readcluster - readcount);
         readcount += cstrlen;
-        _read_cluster(tmp_fat, _buff, cstrlen);
+        _rw_cluster(tmp_fat, _buff, cstrlen, _KFS_READ);
         _buff += cstrlen * clustersize;
         tmp_fat = fat_num;
     }
     if(fat_num != FAT_END && lastsize != 0x0)
     {
-        _read_cluster(fat_num, tmp_sector, 0x1);
+        _rw_cluster(fat_num, tmp_sector, 0x1, _KFS_READ);
         ict_memcpy(tmp_sector, _buff, lastsize);
+    }
+    return size;
+}
+
+PRIVATE DWORD _kfs_write(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
+{
+    if(ict_pcb(kpid)->fdpblock[fp].idle == TRUE)
+        return NONE;
+    if((ict_fd(ict_pcb(kpid)->fdpblock[fp].fdnum)->mode & FMODE_W) == NULL)
+        return NONE;
+    FDESC* fd = ict_fd(ict_pcb(kpid)->fdpblock[fp].fdnum);
+    FEB* feb = &(febt[fd->febnum]);
+    DWORD fat_num = fd->fat;
+    DWORD tmp_fat = fat_num;
+    BYTE* _buff = buff;
+    DWORD cstrlen; /* cluster string length */
+    DWORD skipcluster = fd->offset / clustersize;
+    DWORD skipsize = fd->offset % clustersize;
+    DWORD writecluster = (size + skipsize - clustersize) / clustersize;
+    DWORD lastsize = size % clustersize;
+    DWORD useablecluster = feb->entry.size / clustersize + ((feb->entry.size % clustersize) ? 0x1 : 0x0);
+    DWORD needcluster = (fd->offset + size) / clustersize;
+    DWORD alloccluster;
+    DWORD skipcount = 0x0;
+    DWORD writecount = 0x0;
+    feb->entry.size = fd->offset + size;
+    fd->offset += size;
+    if(size + skipsize < clustersize) /* if less than 1 cluster */
+        writecluster = 0x0;
+    else
+    {
+        if(needcluster > useablecluster)
+        {
+            alloccluster = _cluster_extend(fat_num, needcluster - useablecluster);
+            size -= (needcluster - useablecluster - alloccluster) * clustersize;
+            writecluster -= needcluster - useablecluster - alloccluster;
+        }
+    }
+    while(fat_num != FAT_END && skipcluster != skipcount)
+    {
+        cstrlen = _cluster_string(&fat_num, skipcluster - skipcount);
+        skipcount += cstrlen;
+    }
+    if(fat_num != FAT_END)
+    {
+        _rw_cluster(fat_num, tmp_sector, 0x1, _KFS_READ);
+        ict_memcpy(_buff, tmp_sector + skipsize, size < clustersize ? size : (clustersize - skipsize));
+        _rw_cluster(fat_num, tmp_sector, 0x1, _KFS_WRITE);
+        _buff += clustersize - skipsize;
+    }
+    while(fat_num != FAT_END && writecluster != writecount)
+    {
+        cstrlen = _cluster_string(&fat_num, writecluster - writecount);
+        writecount += cstrlen;
+        _rw_cluster(tmp_fat, _buff, cstrlen, _KFS_WRITE);
+        _buff += cstrlen * clustersize;
+        tmp_fat = fat_num;
+    }
+    if(fat_num != FAT_END)
+    {
+        _rw_cluster(fat_num, tmp_sector, 0x1, _KFS_WRITE);
+        ict_memcpy(tmp_sector + skipsize, _buff, size < clustersize ? size : (clustersize - skipsize));
+        _buff += clustersize - skipsize;
     }
     return size;
 }
@@ -391,6 +507,54 @@ PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin)
             break;
     }
     return fd->offset;
+}
+
+PRIVATE DWORD _creat_file_sname(DWORD dir_fat, BYTE* filename)
+{
+    SDIRENTRY* entry;
+    DWORD start_fat;
+    BYTE tmp_sname[SNAME_LEN] = {0x0};
+    if((DWORD)(entry = _alloc_entry(dir_fat)) == NONE)
+        return FALSE;
+    if((start_fat = _cluster_alloc(dir_fat, 0x1, _KFS_ALLOC)) == NONE)
+        return FALSE;
+    _setup_sname(filename, tmp_sname);
+    ict_memcpy(tmp_sname, entry->filename, SNAME_LEN);
+    entry->attr = 0x0;
+    entry->cluster_low = start_fat & 0xffff;
+    entry->cluster_high = (start_fat >> 0x10) & 0xffff;
+    entry->size = 0x0;
+    _rw_cluster(tmp_fatnum, tmp_cluster, 0x1, _KFS_WRITE);
+    return TRUE;
+}
+
+PRIVATE POINTER _alloc_entry(DWORD dir_fat)
+{
+    BYTE* item;
+    DWORD tmp_fat = dir_fat;
+    while(tmp_fat != FAT_END)
+    {
+        _rw_cluster(tmp_fat, tmp_cluster, 0x1, _KFS_READ);
+        item = tmp_cluster;
+        while((DWORD)item - (DWORD)tmp_cluster < fat32dbr->sectors_per_cluster * SECTOR_SIZE)
+        {
+            if(item[0x0] == FLAG_CLEAN || item[0x0] == FLAG_DEL)
+            {
+                tmp_fatnum = tmp_fat;
+                return item;
+            }
+            item = (BYTE*)((DWORD)item + DIRENTRY_SIZE);
+        }
+        tmp_fat = _next_fat(tmp_fat);
+        dir_fat = tmp_fat;
+    }
+    if(_cluster_extend(dir_fat, 0x1) != 0x0)
+        tmp_fat = _next_fat(dir_fat);
+    else
+        return (POINTER)NONE; /* no more space */
+    ict_clear(tmp_cluster, clustersize);
+    tmp_fatnum = tmp_fat;
+    return tmp_cluster;
 }
 
 PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry)
@@ -463,7 +627,7 @@ PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY
     BYTE tmp_sname[SNAME_LEN] = {0x0};
     while(fat_num != FAT_END)
     {
-        _read_cluster(fat_num, tmp_cluster, 0x1);
+        _rw_cluster(fat_num, tmp_cluster, 0x1, _KFS_READ);
         item = (SDIRENTRY*)tmp_cluster;
         while((DWORD)item - (DWORD)tmp_cluster < fat32dbr->sectors_per_cluster * SECTOR_SIZE)
         {
@@ -496,7 +660,7 @@ PRIVATE DWORD _search_file_in_dir_lname(DWORD fat_num, WORD* filename, SDIRENTRY
     WORD tmp_lname[LNAME_LEN + 0x1] = {0x0};
     while(fat_num != FAT_END)
     {
-        _read_cluster(fat_num, tmp_cluster, 0x1);
+        _rw_cluster(fat_num, tmp_cluster, 0x1, _KFS_READ);
         item = (LDIRENTRY*)tmp_cluster;
         while((DWORD)item - (DWORD)tmp_cluster < fat32dbr->sectors_per_cluster * SECTOR_SIZE)
         {
@@ -566,14 +730,17 @@ PRIVATE VOID _build_lname(LDIRENTRY* entry, WORD* lname)
             lname[num + i + 0xb] = entry->filename_12_13[i];
 }
 
-PRIVATE DWORD _read_cluster(DWORD cluster_num, BYTE* buff, DWORD sum)
+PRIVATE DWORD _rw_cluster(DWORD cluster_num, BYTE* buff, DWORD sum, DWORD mode)
 {
     DWORD sector_num;
     DWORD err;
     cluster_num -= 0x2; /* data area start with cluster 2 */
     sector_num = cluster_num * fat32dbr->sectors_per_cluster;
     sector_num += dataoffset;
-    err = ict_hdread(sector_num, fat32dbr->sectors_per_cluster * sum, ATA_PRIMARY, buff);
+    if(mode == _KFS_READ)
+        err = ict_hdread(sector_num, fat32dbr->sectors_per_cluster * sum, ATA_PRIMARY, buff);
+    else
+        err = ict_hdwrite(sector_num, fat32dbr->sectors_per_cluster * sum, ATA_PRIMARY, buff);
     return err;
 }
 
@@ -592,18 +759,79 @@ PRIVATE DWORD _cluster_string(DWORD *fat_num, DWORD maxlen)
     return sum;
 }
 
+PRIVATE DWORD _cluster_extend(DWORD fat_num, DWORD sum)
+{
+    DWORD tmp_fat = fat_num;
+    while((tmp_fat = _next_fat(tmp_fat)) != FAT_END)
+        fat_num = tmp_fat;
+    DWORD alloc_sum = _cluster_alloc(fat_num, sum, _KFS_EXTEND);
+    return alloc_sum;
+}
+
+PRIVATE DWORD _cluster_alloc(DWORD start_fat, DWORD sum, DWORD mode)
+{
+    DWORD tmp_fat = NULL;
+    DWORD fat_num = start_fat;
+    DWORD fat_id = fat_num & cache_mask;
+    DWORD cache_num = _fat_in_cache(fat_num);
+    DWORD alloc_sum = 0x0;
+    DWORD alloc_num = NONE;
+    if(mode == _KFS_EXTEND)
+        tmp_fat = start_fat;
+    while(sum != alloc_sum)
+    {
+        fat_num++;
+        if(fat_num == start_fat)
+            break;
+        if(!(fat_num < fat32dbr->fat_size * (SECTOR_SIZE / 0x4)))
+            fat_num = 0x2;
+        if(fat_id != (fat_num & cache_mask))
+        {
+            fat_id = fat_num & cache_mask;
+            cache_num = _fat_in_cache(fat_num);
+        }
+        if(((DWORD*)fatcache[cache_num].data)[fat_num & ~cache_mask] == 0x0)
+        {
+            if(tmp_fat != NULL)
+            {
+                DWORD tmp_cache_num = _fat_in_cache(tmp_fat);
+                ((DWORD*)fatcache[tmp_cache_num].data)[tmp_fat & ~cache_mask] = fat_num;
+                fatcache[tmp_cache_num].change = TRUE;
+            }
+            else
+                alloc_num = fat_num;
+            ((DWORD*)fatcache[cache_num].data)[fat_num & ~cache_mask] = FAT_END;
+            fatcache[cache_num].change = TRUE;
+            tmp_fat = fat_num;
+            alloc_sum++;
+        }
+    }
+    if(mode == _KFS_ALLOC)
+        return alloc_num;
+    else if(mode == _KFS_EXTEND)
+        return alloc_sum;
+    return NONE;
+}
+
 PRIVATE DWORD _next_fat(DWORD fat_num)
 {
     if(fat_num == FAT_END)
         return fat_num;
-    DWORD fat_id =   fat_num & 0xffffff80;
-    DWORD fat_addr = fat_num & 0x0000007f;
+    DWORD fat_addr = fat_num & ~cache_mask;
+    DWORD cache_num = _fat_in_cache(fat_num);
+    return ((DWORD*)fatcache[cache_num].data)[fat_addr];
+}
+
+PRIVATE DWORD _fat_in_cache(DWORD fat_num)
+{
+    DWORD fat_id =   fat_num & cache_mask;
     DWORD cache_num = NONE;
     DWORD i;
     for(i = 0x0; i < FAT_BLOCK_SUM; i++)
         if(fatcache[i].id == fat_id)
         {
             cache_num = i;
+            fatcache[i].time = 0x0;
             break;
         }
     if(cache_num == NONE) /* this FAT item not in FAT cache */
@@ -612,9 +840,12 @@ PRIVATE DWORD _next_fat(DWORD fat_num)
         for(i = 0x0; i < FAT_BLOCK_SUM; i++)
             if(fatcache[max_time_id].time < fatcache[i].time)
                 max_time_id = i;
+        if(fatcache[max_time_id].change == TRUE)
+            _writeback_fatblock(max_time_id);
         fatcache[max_time_id].id = fat_id; /* set it to this fat id */
         fatcache[max_time_id].time = 0x0; /* reset the no access time */
-        DWORD sector_num = fat_num / FAT_BLOCK_SIZE * 0x4 + fat1offset;
+        fatcache[max_time_id].change = FALSE;
+        DWORD sector_num = fat_id + fat1offset;
         if(ict_hdread(sector_num, FAT_BLOCK_SIZE / SECTOR_SIZE, ATA_PRIMARY, fatcache[max_time_id].data) != NULL)
             return NULL; /* crash */
         cache_num = max_time_id;
@@ -622,7 +853,29 @@ PRIVATE DWORD _next_fat(DWORD fat_num)
     /* increase all time */
     for(i = 0x0; i < FAT_BLOCK_SUM; i++)
         fatcache[i].time++;
-    return fatcache[i].data[fat_addr];
+    return cache_num;
+}
+
+PRIVATE DWORD _writeback_fatblock(DWORD fatblock_num)
+{
+    DWORD sector_num = fat1offset + fatcache[fatblock_num].id * 0x4 / SECTOR_SIZE;
+    if(ict_hdwrite(sector_num, FAT_BLOCK_SIZE / SECTOR_SIZE, ATA_PRIMARY, fatcache[fatblock_num].data) != NULL)
+        return FALSE;
+    return TRUE;
+}
+
+PRIVATE DWORD _writeback_fatcache()
+{
+    DWORD rst = TRUE;
+    DWORD i;
+    for(i = 0; i < FAT_BLOCK_SUM; i++)
+        if(fatcache[i].change == TRUE)
+        {
+            fatcache[i].change = FALSE;
+            if(_writeback_fatblock(i) == FALSE)
+                rst = FALSE;
+        }
+    return rst;
 }
 
 PRIVATE DWORD _alloc_fdt()

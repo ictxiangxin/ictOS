@@ -28,6 +28,8 @@ global ict_cli
 global ict_sti
 global ict_lock
 global ict_unlock
+global ict_memcpy
+global ict_clear
 global ict_cursorlocation
 global ict_setcursor
 global ict_startlocation
@@ -37,7 +39,6 @@ global ict_refreshvideo
 global ict_setupint
 global ict_loadLDT
 global ict_loadGD
-global ict_memcpy
 global ict_execute
 global ict_done
 
@@ -155,6 +156,23 @@ ict_memcpy:
     pop     edi
     pop     ebp
     ret ; function end
+
+;==============================================================================;
+; clear a block of memory                                                      ;
+; VOID ict_clear(POINTER mem, DWORD size);                                     ;
+;==============================================================================;
+ict_clear:
+    push    ebp
+    mov     ebp, esp
+    push    edi
+    mov     edi, dword [ebp + EBP_FIRST_ARG]
+    xor     eax, eax
+    mov     ecx, dword [ebp + EBP_FIRST_ARG + NEXT_ARG]
+    cld
+    rep stosb
+    pop     edi
+    pop     ebp
+    ret
 
 ;==============================================================================;
 ; get the cursor location                                                      ;

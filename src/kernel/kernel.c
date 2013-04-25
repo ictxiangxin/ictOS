@@ -18,14 +18,13 @@ void testb()
 {
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     MSG m;
-    DWORD i;
-    BYTE buff[512];
-    WORD ln[] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
+    BYTE buff[512] = "1";
+    WORD ln[15] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     ict_cprintf( COLOR_RED, "open file TEST/TEST.ICT : <%d>\n", ict_open_sname("TEST/TEST.TXT", 1));
     ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>\n", ict_open_lname(ln, 1));
     ict_seek(1, 3, SEEK_START);
-    ict_read(1, 512, buff);
+    ict_write(1, 512, buff);
     ict_printf("{%s}", buff);
     while ( TRUE )
     {
