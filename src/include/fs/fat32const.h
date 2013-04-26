@@ -25,6 +25,7 @@
 
 #define SNAME_LEN       0xb
 #define LNAME_LEN       0xff
+#define LNAME_ENTRY_LEN 0xd
 
 #define LNAME_PER_ENTRY 0xd
 

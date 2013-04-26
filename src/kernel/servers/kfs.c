@@ -28,8 +28,15 @@ PRIVATE VOID  _kfs_close(DWORD kpid, DWORD fp);
 PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff);
 PRIVATE DWORD _kfs_write(DWORD kpid, DWORD fp, DWORD size, POINTER buff);
 PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin);
-PRIVATE DWORD _creat_file_sname(DWORD dir_fat, BYTE* filename);
-PRIVATE POINTER _alloc_entry(DWORD dir_fat);
+PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type);
+PRIVATE VOID  _path_name(WORD* filepath, WORD* filename);
+PRIVATE VOID  _lname_to_sname(WORD* lname, BYTE* sname);
+PRIVATE DWORD _lname_real_length(WORD* lname);
+PRIVATE BYTE  _kfs_checksum(BYTE* sname);
+PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename);
+PRIVATE VOID  _setup_lname_entry(LDIRENTRY* entry,DWORD number, WORD* filename, DWORD len, DWORD checksum);
+PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename);
+PRIVATE POINTER _alloc_entry(DWORD dir_fat, DWORD sum);
 PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry);
 PRIVATE DWORD _find_file_lname(WORD* filepath, SDIRENTRY* entry);
 PRIVATE BYTE* _next_filepath_sname(BYTE* filepath);
@@ -90,7 +97,9 @@ PUBLIC VOID kfs_daemon()
         ict_done();
     _init_fat32_arg(); /* init fat32 arguments */
     ict_unlock(&lock);
-    _creat_file_sname(2, "XIANGXIN");
+    WORD fn[30] = {'/', 't', 'e', 's', 't', '/', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'};
+    //WORD fn[20] = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+_kfs_create(fn, 0);
     FCB* fcb;
     RWCB* rwcb;
     SCB* scb;
@@ -509,26 +518,184 @@ PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin)
     return fd->offset;
 }
 
-PRIVATE DWORD _creat_file_sname(DWORD dir_fat, BYTE* filename)
+PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type)
 {
-    SDIRENTRY* entry;
+/* need to test many file to check :
+    1. two same name files
+    2. so many file that one cluster can not contain */
+    if(*filepath == '/')
+        filepath++; /* clear '/' */
+    SDIRENTRY _tmp_entry;
+    DWORD len = ict_ustrlen(filepath);
+    WORD* tmp_filepath = (WORD*)ict_malloc(len * sizeof(WORD));
+    ict_memcpy(filepath, tmp_filepath, len * sizeof(WORD));
+    if(_find_file_lname(tmp_filepath, &_tmp_entry) != NULL)
+    {
+        ict_free(tmp_filepath);
+        return FALSE; /* file exist */
+    }
+    WORD filename[LNAME_LEN + 0x1] = {0x0};
+    _path_name(filepath, filename);
+    DWORD dir_fat;
+    if(filepath[0x0] == '\0')
+        dir_fat = ROOT_FAT;
+    else if((dir_fat = _find_file_lname(filepath, &_tmp_entry)) == NULL)
+    {
+        ict_free(tmp_filepath);
+        return FALSE; /* no such dir */
+    }
+    DWORD rst = _create_file_lname(dir_fat, filename);
+    ict_free(tmp_filepath);
+    return rst;
+}
+
+PRIVATE VOID _path_name(WORD* filepath, WORD* filename)
+{
+    DWORD len = ict_ustrlen(filepath);
+    DWORD i;
+    for(i = len - 1; i != 0x0; i--)
+        if(filepath[i] == '/')
+        {
+            ict_memcpy(filepath + i + 0x1, filename, (len - i - 0x1) * sizeof(WORD));
+            filepath[i] = '\0';
+            break;
+        }
+    if(i == 0x0)
+    {
+        ict_memcpy(filepath, filename, len);
+        filepath[0x0] = '\0';
+    }
+}
+
+PRIVATE VOID _lname_to_sname(WORD* lname, BYTE* sname)
+{
+    DWORD len = _lname_real_length(lname);
+    if(len > SNAME_LEN)
+        len = SNAME_LEN;
+    DWORD i, j;
+    BYTE* tmp_lname = (BYTE*)lname;
+    for(i = 0x0, j = 0x0; i < len; i++)
+    {
+        if(tmp_lname[i + j] == 0x0)
+            j++;
+        if(tmp_lname[i + j] >= 'a' && tmp_lname[i + j] <= 'z')
+            sname[i] = tmp_lname[i + j] - 0x20;
+        else
+            sname[i] = tmp_lname[i + j];
+    }
+    for(; i < SNAME_LEN; i++)
+        sname[i] = ' ';
+}
+
+PRIVATE DWORD _lname_real_length(WORD* lname)
+{
+    DWORD len = 0x0;
+    while(*lname != '\0')
+    {
+        if(*lname & 0xff)
+            len += 0x2;
+        else
+            len++;
+        lname++;
+    }
+    return len;
+}
+
+PRIVATE BYTE _kfs_checksum(BYTE* sname)
+{
+    DWORD i;
+    BYTE checksum = 0x0;
+    for(i = 0x0; i < SNAME_LEN; i++)
+        checksum = ((checksum & 0x1) ? 0x80 : 0x0) + (checksum >> 0x1) + *sname++;
+    return checksum;
+}
+
+PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename)
+{
+    DWORD len = ict_ustrlen(filename);
+    DWORD last_lname_len = len % LNAME_ENTRY_LEN;
+    DWORD entry_sum = len / LNAME_ENTRY_LEN + (last_lname_len > 0x0 ? 0x1 : 0x0) + 0x1;
+    BYTE  sname[SNAME_LEN];
+    POINTER entry;
+    if((entry = _alloc_entry(dir_fat, entry_sum)) == (POINTER)NONE)
+        return FALSE;
+    _lname_to_sname(filename, sname);
+    DWORD checksum = _kfs_checksum(sname);
+    DWORD i = 0x0;
+    while(TRUE)
+    {
+        if(i + 0x2 == entry_sum)
+        {
+            last_lname_len = last_lname_len == 0x0 ? LNAME_ENTRY_LEN : last_lname_len;
+            _setup_lname_entry((LDIRENTRY*)entry, (i + 0x1) | FLAG_END, filename + i * LNAME_ENTRY_LEN, last_lname_len, checksum);
+            _create_file_sname((SDIRENTRY*)entry + i + 0x1, sname);
+            _rw_cluster(tmp_fatnum, tmp_cluster, 0x1, _KFS_WRITE);
+            return TRUE;
+        }
+        _setup_lname_entry((LDIRENTRY*)entry + entry_sum - 0x2 - i, i + 0x1, filename + i * LNAME_ENTRY_LEN, LNAME_ENTRY_LEN, checksum);
+        i++;
+    }
+}
+
+PRIVATE VOID _setup_lname_entry(LDIRENTRY* entry,DWORD number, WORD* filename, DWORD len, DWORD checksum)
+{
+    DWORD i;
+    DWORD wp;
+    entry->number = number;
+    entry->flag = ATTR_LNAME;
+    entry->checksum = checksum;
+    if(len >= 0x5)
+        ict_memcpy(filename, entry->filename_1_5, 0xa);
+    else
+    {
+        ict_memcpy(filename, entry->filename_1_5, len * 0x2);
+        entry->filename_1_5[len] = 0x0000;
+        for(i = 0x1; i < 0x5 - len; i++)
+            entry->filename_1_5[len + i] = 0xffff;
+        goto no_6_11;
+    }
+    if(len >= 0xb)
+        ict_memcpy(filename + 0x5, entry->filename_6_11, 0x1a);
+    else
+    {
+        ict_memcpy(filename + 0x5, entry->filename_6_11, (len - 0x5) * 0x2);
+        entry->filename_6_11[len - 0x5] = 0x0000;
+        for(i = 0x1; i < 0xb - len; i++)
+            entry->filename_6_11[len - 0x5 + i] = 0xffff;
+        goto no_12_13;
+    }
+    if(len == 0xb)
+        goto no_12_13;
+    entry->filename_12_13[0x0] = filename[0xb];
+    if(len == 0xc)
+        entry->filename_12_13[0x1] = 0x0000;
+    else
+        entry->filename_12_13[0x1] = filename[0xc];
+    return;
+no_6_11:
+    entry->filename_6_11[0x0] = 0x0000;
+    for(i = 0x1; i < 0x6; i++)
+        entry->filename_6_11[i] = 0xffff;
+no_12_13:
+    entry->filename_12_13[0x0] = 0x0000;
+    for(i = 0x1; i < 0x2; i++)
+        entry->filename_12_13[i] = 0xffff;
+}
+
+PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename)
+{
     DWORD start_fat;
-    BYTE tmp_sname[SNAME_LEN] = {0x0};
-    if((DWORD)(entry = _alloc_entry(dir_fat)) == NONE)
+    if((start_fat = _cluster_alloc(ROOT_FAT, 0x1, _KFS_ALLOC)) == NONE)
         return FALSE;
-    if((start_fat = _cluster_alloc(dir_fat, 0x1, _KFS_ALLOC)) == NONE)
-        return FALSE;
-    _setup_sname(filename, tmp_sname);
-    ict_memcpy(tmp_sname, entry->filename, SNAME_LEN);
+    ict_memcpy(filename, entry->filename, SNAME_LEN);
     entry->attr = 0x0;
     entry->cluster_low = start_fat & 0xffff;
     entry->cluster_high = (start_fat >> 0x10) & 0xffff;
     entry->size = 0x0;
-    _rw_cluster(tmp_fatnum, tmp_cluster, 0x1, _KFS_WRITE);
     return TRUE;
 }
 
-PRIVATE POINTER _alloc_entry(DWORD dir_fat)
+PRIVATE POINTER _alloc_entry(DWORD dir_fat, DWORD sum)
 {
     BYTE* item;
     DWORD tmp_fat = dir_fat;
@@ -536,14 +703,21 @@ PRIVATE POINTER _alloc_entry(DWORD dir_fat)
     {
         _rw_cluster(tmp_fat, tmp_cluster, 0x1, _KFS_READ);
         item = tmp_cluster;
-        while((DWORD)item - (DWORD)tmp_cluster < fat32dbr->sectors_per_cluster * SECTOR_SIZE)
+        while((DWORD)item - (DWORD)tmp_cluster <= fat32dbr->sectors_per_cluster * SECTOR_SIZE - sum)
         {
             if(item[0x0] == FLAG_CLEAN || item[0x0] == FLAG_DEL)
             {
-                tmp_fatnum = tmp_fat;
-                return item;
+                DWORD i;
+                for(i = 0x1; i < sum; i++)
+                    if((item + i * DIRENTRY_SIZE)[0x0] != FLAG_CLEAN && (item + i * DIRENTRY_SIZE)[0x0] != FLAG_DEL)
+                        break;
+                if(i == sum)
+                {
+                    tmp_fatnum = tmp_fat;
+                    return item;
+                }
             }
-            item = (BYTE*)((DWORD)item + DIRENTRY_SIZE);
+            item = (BYTE*)(item + DIRENTRY_SIZE);
         }
         tmp_fat = _next_fat(tmp_fat);
         dir_fat = tmp_fat;
@@ -720,14 +894,11 @@ PRIVATE VOID _build_lname(LDIRENTRY* entry, WORD* lname)
     num *= LNAME_PER_ENTRY;
     DWORD i;
     for(i = 0x0; i < 0x5; i++)
-        if(entry->filename_1_5[i] != '\0')
-            lname[num + i] = entry->filename_1_5[i];
+        lname[num + i] = entry->filename_1_5[i];
     for(i = 0x0; i < 0x6; i++)
-        if(entry->filename_6_11[i] != '\0')
-            lname[num + i + 0x5] = entry->filename_6_11[i];
+        lname[num + i + 0x5] = entry->filename_6_11[i];
     for(i = 0x0; i < 0x2; i++)
-        if(entry->filename_12_13[i] != '\0')
-            lname[num + i + 0xb] = entry->filename_12_13[i];
+        lname[num + i + 0xb] = entry->filename_12_13[i];
 }
 
 PRIVATE DWORD _rw_cluster(DWORD cluster_num, BYTE* buff, DWORD sum, DWORD mode)

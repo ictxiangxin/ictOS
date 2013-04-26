@@ -45,6 +45,14 @@ PUBLIC DWORD ict_strcmpl(BYTE* str1, BYTE* str2, DWORD len)
     return TRUE;
 }
 
+PUBLIC DWORD ict_ustrlen(WORD* str)
+{
+    DWORD i = 0x0;
+    while(str[i] != '\0')
+        i++;
+    return i;
+}
+
 PUBLIC DWORD ict_ustrcmp(WORD* str1, WORD* str2)
 {
     while(*str1 == *str2 && *str1 != '\0')

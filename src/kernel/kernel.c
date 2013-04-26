@@ -19,7 +19,8 @@ void testb()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     MSG m;
     BYTE buff[512] = "1";
-    WORD ln[15] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
+    //WORD ln[15] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
+    WORD ln[15] = {'t', 'e', 's', 't'};
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     ict_cprintf( COLOR_RED, "open file TEST/TEST.ICT : <%d>\n", ict_open_sname("TEST/TEST.TXT", 1));
     ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>\n", ict_open_lname(ln, 1));
