@@ -3,6 +3,7 @@
 ;                                                                      by: ict ;
 ;==============================================================================;
 
+BOOT_BASE           equ 0x7c0
 BOOT_OFFSET         equ 0x7c00
 BOOT_BLOCK_OFFSET   equ 0x600
 BOOT_BLOCK_SIZE     equ 0x4

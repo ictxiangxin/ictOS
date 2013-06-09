@@ -8,18 +8,20 @@
 [section sysboot]
 [bits 16]
 
-    org     BOOT_OFFSET
     jmp     start_boot
     nop
 
 %include    "../fs/fat32dbr.inc"
 
 start_boot:
-    xor     ax, ax
+    jmp     BOOT_BASE : relocate
+relocate:
+    mov     ax, cs
     mov     ds, ax
     mov     es, ax
     cli
     mov     sp, BOOT_OFFSET
+    xor     ax, ax
     mov     ss, ax
     sti
     mov     ax, 0x3
@@ -50,8 +52,6 @@ load_boot_block:
     mov     word [BlockNumLow + 0x2], bx
     mov     word [BlockNumHigh], cx
     mov     word [BlockNumHigh + 0x2], dx
-    mov     word [BufferOffset], BOOT_BLOCK_OFFSET
-    mov     word [BlockCount], BOOT_BLOCK_SIZE
     mov     dl, byte [dbr_device]
     mov     ah, 0x42
     mov     si, DAP
@@ -67,6 +67,8 @@ load_boot_block:
     jmp     load_error
 
 load_success:
+    call    print
+    db "OK", 0x0
     jmp     0 : BOOT_BLOCK_OFFSET
 
 load_error:
@@ -114,8 +116,8 @@ print_done:
 DAP:  
     PacketSize      db  0x10    ; this always is 16 bytes
     Reserved        db  0x0
-    BlockCount      dw  0x0
-    BufferOffset    dw  0x0
+    BlockCount      dw  BOOT_BLOCK_SIZE
+    BufferOffset    dw  BOOT_BLOCK_OFFSET
     BufferSegment   dw  0x0
     BlockNumLow     dd  0x0
     BlockNumHigh    dd  0x0

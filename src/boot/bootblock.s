@@ -11,6 +11,9 @@
     org 0x600
 
 boot_block:
+    xor     ax, ax
+    mov     ds, ax
+    mov     es, ax
     call    print
     db  "Boot...", 0xd, 0xa, 0x0
     call    init_fs_data
