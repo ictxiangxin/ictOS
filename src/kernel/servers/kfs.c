@@ -98,9 +98,6 @@ PUBLIC VOID kfs_daemon()
         ict_done();
     _init_fat32_arg(); /* init fat32 arguments */
     ict_unlock(&lock);
-    WORD fn[30] = {'/', 't', 'e', 's', 't', '/', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', '8'};
-    //WORD fn[20] = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
-_kfs_create(fn, 0);
     FCB* fcb;
     RWCB* rwcb;
     SCB* scb;

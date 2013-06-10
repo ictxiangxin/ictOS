@@ -24,6 +24,7 @@ relocate:
     xor     ax, ax
     mov     ss, ax
     sti
+    ; reset video
     mov     ax, 0x3
     int     0x10
     mov     ax, 0x600
@@ -67,9 +68,7 @@ load_boot_block:
     jmp     load_error
 
 load_success:
-    call    print
-    db "OK", 0x0
-    jmp     0 : BOOT_BLOCK_OFFSET
+    jmp     0x0 : BOOT_BLOCK_OFFSET
 
 load_error:
     mov     si, error_number + 0x3

@@ -3,12 +3,13 @@
 ;                                                                      by: ict ;
 ;==============================================================================;
 
+%include "sysboot.inc"
 %include "bootblock.inc"
 
 [section bootblock]
 [bits 16]
 
-    org 0x600
+    org BOOT_BLOCK_OFFSET
 
 boot_block:
     xor     ax, ax

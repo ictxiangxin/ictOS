@@ -19,9 +19,8 @@ void testb()
     ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
     MSG m;
     BYTE buff[512] = "1";
-    //WORD ln[15] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
-    WORD ln[15] = {'t', 'e', 's', 't'};
-    ict_cprintf ( COLOR_WHITE, "pid:%d is running ...\n", ict_mypid() );
+    WORD ln[15] = {'k', 'e', 'r', 'n', 'e', 'l', '.', 'i', 'c', 't'};
+    //WORD ln[15] = {'t', 'e', 's', 't'};
     ict_cprintf( COLOR_RED, "open file TEST/TEST.ICT : <%d>\n", ict_open_sname("TEST/TEST.TXT", 1));
     ict_cprintf( COLOR_RED, "open file kernel.ict : <%d>\n", ict_open_lname(ln, 1));
     ict_seek(1, 3, SEEK_START);
@@ -70,7 +69,7 @@ void testc()
             c = '0';
         if ( m.sig )
             continue;
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -85,7 +84,7 @@ void testd()
     {
         if ( send_msg ( 9, s, NULL, NULL ))
             s++;
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -99,7 +98,7 @@ void teste()
     {
         recv_msg ( &m );
         ict_cprintf ( COLOR_MAGENTA, "_%d_", m.sig );
-        for ( i = 0; i < 10000000; i++ );
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 
@@ -120,8 +119,9 @@ void testf()
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 72 );
         msg_dropchar ( sb[p], COLOR_LIGHTGREEN, 10, 68 );
         p = ++p % 4;
-        ict_cprintf(COLOR_GREEN, "[0x%x]", ict_idlesize());
-        for ( i = 0; i < 100000000; i++ );
+        if(p == 0)
+            ict_cprintf(COLOR_GREEN, "[0x%x]", ict_idlesize());
+        for ( i = 0; i < 1000000; i++ );
     }
 }
 

@@ -3,7 +3,6 @@
 ;                                                                      by: ict ;
 ;==============================================================================;
 
-BOOT_OFFSET             equ     0x7c00
 DBR_SECTORS_PER_CLUSTER equ     0xd
 DBR_RESERVED_SECTORS    equ     0xe
 DBR_FAT_SUM             equ     0x10
