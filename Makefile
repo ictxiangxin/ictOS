@@ -35,9 +35,9 @@ KERNEL_C_OBJS = bin/kernel/kernel.o \
                 bin/kernel/servers/video.o \
                 bin/kernel/servers/kfs.o
 
-install : complie setup
+install : compile setup
 
-complie : $(ALL_FILES) 
+compile : $(ALL_FILES) 
 
 setup :
 	cat bin/boot/sysboot.bin bin/boot/bootblock.bin > bin/boot/boot.bin

@@ -78,6 +78,9 @@ PRIVATE DWORD tmp_entrynum; /* used by febt */
 
 PRIVATE DWORD lock = FALSE;
 
+/******************************************************************/
+/* get enough memory space to store kfs buff                      */
+/******************************************************************/
 PUBLIC VOID init_kfs()
 {
     if((fdt = (FDESC*)ict_malloc(sizeof(FDESC) * FDT_SIZE)) == NULL)
@@ -91,7 +94,10 @@ PUBLIC VOID init_kfs()
     if((febt = (FEB*)ict_malloc(sizeof(FEB) * FEBT_SIZE)) == NULL)
         return; /* crash !!!*/
 }
-
+  
+/******************************************************************/
+/* kfs daemon                                                     */
+/******************************************************************/
 PUBLIC VOID kfs_daemon()
 {
     while(ict_lock(&lock))
@@ -136,7 +142,10 @@ PUBLIC VOID kfs_daemon()
         ict_unlock(&lock);
     }
 }
-
+  
+/******************************************************************/
+/* init file descriptor pointer block                             */
+/******************************************************************/
 PUBLIC VOID init_fdpblock(FDPBLOCK* fdpblock)
 {
     DWORD i;
@@ -147,21 +156,33 @@ PUBLIC VOID init_fdpblock(FDPBLOCK* fdpblock)
     }
 }
 
+/******************************************************************/
+/* get file discriptor by number                                  */
+/******************************************************************/
 PUBLIC FDESC* ict_fd(DWORD fdnum)
 {
     return &(fdt[fdnum]);
 }
 
+/******************************************************************/
+/* use short name open the file                                   */
+/******************************************************************/
 PUBLIC DWORD ict_open_sname(BYTE* filepath, DWORD mode)
 {
     return _ict_open(filepath, mode, SNAME_MODE);
 }
 
+/******************************************************************/
+/* use long name open the file                                    */
+/******************************************************************/
 PUBLIC DWORD ict_open_lname(WORD* filepath, DWORD mode)
 {
     return _ict_open(filepath, mode, LNAME_MODE);
 }
 
+/******************************************************************/
+/* close a file by file pointer                                   */
+/******************************************************************/
 PUBLIC VOID ict_close(DWORD fp)
 {
     if(!ict_lock(&lock))
@@ -173,6 +194,9 @@ PUBLIC VOID ict_close(DWORD fp)
     send_msg(PID_KFS, KFS_CLOSE, fp, NULL);
 }
 
+/******************************************************************/
+/* read data from file to memory                                  */
+/******************************************************************/
 PUBLIC DWORD ict_read(DWORD fp, DWORD size, POINTER buff)
 {
     if(!ict_lock(&lock))
@@ -192,6 +216,9 @@ PUBLIC DWORD ict_read(DWORD fp, DWORD size, POINTER buff)
     return m.data;
 }
 
+/******************************************************************/
+/* write data from memory to file                                 */
+/******************************************************************/
 PUBLIC DWORD ict_write(DWORD fp, DWORD size, POINTER buff)
 {
     if(!ict_lock(&lock))
@@ -211,6 +238,9 @@ PUBLIC DWORD ict_write(DWORD fp, DWORD size, POINTER buff)
     return m.data;
 }
 
+/******************************************************************/
+/* move read/write pointer of file                                */
+/******************************************************************/
 PUBLIC DWORD ict_seek(DWORD fp, DWORD offset, DWORD origin)
 {
     if(!ict_lock(&lock))
@@ -230,6 +260,9 @@ PUBLIC DWORD ict_seek(DWORD fp, DWORD offset, DWORD origin)
     return m.data;
 }
 
+/******************************************************************/
+/* init fat32 main arguments                                      */
+/******************************************************************/
 PRIVATE VOID _init_fat32_arg()
 {
     DWORD tmp = FAT_BLOCK_SIZE / SECTOR_SIZE;
@@ -260,6 +293,9 @@ PRIVATE VOID _init_fat32_arg()
     _init_febt();
 }
 
+/******************************************************************/
+/* init fat cache                                                 */
+/******************************************************************/
 PRIVATE VOID _init_fatcache()
 {
     DWORD sector_num;
@@ -274,6 +310,9 @@ PRIVATE VOID _init_fatcache()
     }
 }
 
+/******************************************************************/
+/* init file discriptor table                                     */
+/******************************************************************/
 PRIVATE VOID _init_fdt()
 {
     DWORD i;
@@ -285,6 +324,9 @@ PRIVATE VOID _init_fdt()
     }
 }
 
+/******************************************************************/
+/* init file entry block table                                    */
+/******************************************************************/
 PRIVATE VOID _init_febt()
 {
     DWORD i;
@@ -297,6 +339,9 @@ PRIVATE VOID _init_febt()
     }
 }
 
+/******************************************************************/
+/* private function of open file                                  */
+/******************************************************************/
 PRIVATE DWORD _ict_open(POINTER filepath, DWORD mode, DWORD namemode)
 {
     if(!ict_lock(&lock))
@@ -315,6 +360,9 @@ PRIVATE DWORD _ict_open(POINTER filepath, DWORD mode, DWORD namemode)
     return m.data;
 }
 
+/******************************************************************/
+/* find file and open it                                          */
+/******************************************************************/
 PRIVATE DWORD _kfs_open(DWORD kpid, POINTER filepath, DWORD mode, DWORD namemode)
 {
     DWORD fat_num;
@@ -355,6 +403,9 @@ PRIVATE DWORD _kfs_open(DWORD kpid, POINTER filepath, DWORD mode, DWORD namemode
     return fdp_num;
 }
 
+/******************************************************************/
+/* close file and release resource                                */
+/******************************************************************/
 PRIVATE VOID _kfs_close(DWORD kpid, DWORD fp)
 {
     _free_febt(ict_fd(ict_pcb(kpid)->fdpblock[fp].fdnum)->febnum);
@@ -363,6 +414,9 @@ PRIVATE VOID _kfs_close(DWORD kpid, DWORD fp)
     ict_pcb(kpid)->fdpblock[fp].fdnum = 0x0;
 }
 
+/******************************************************************/
+/* locate data and read                                           */
+/******************************************************************/
 PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
 {
     if(ict_pcb(kpid)->fdpblock[fp].idle == TRUE)
@@ -415,6 +469,9 @@ PRIVATE DWORD _kfs_read(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
     return size;
 }
 
+/******************************************************************/
+/* locate data and write                                          */
+/******************************************************************/
 PRIVATE DWORD _kfs_write(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
 {
     if(ict_pcb(kpid)->fdpblock[fp].idle == TRUE)
@@ -478,6 +535,9 @@ PRIVATE DWORD _kfs_write(DWORD kpid, DWORD fp, DWORD size, POINTER buff)
     return size;
 }
 
+/******************************************************************/
+/* modify file read/write pointer                                 */
+/******************************************************************/
 PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin)
 {
     if(ict_pcb(kpid)->fdpblock[fp].idle == TRUE)
@@ -516,6 +576,9 @@ PRIVATE DWORD _kfs_seek(DWORD kpid, DWORD fp, LINT offset, DWORD origin)
     return fd->offset;
 }
 
+/******************************************************************/
+/* create a file                                                  */
+/******************************************************************/
 PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type)
 {
     if(*filepath == '/')
@@ -544,6 +607,9 @@ PRIVATE DWORD _kfs_create(WORD* filepath, DWORD type)
     return rst;
 }
 
+/******************************************************************/
+/* separate filename and filepath                                 */
+/******************************************************************/
 PRIVATE VOID _path_name(WORD* filepath, WORD* filename)
 {
     DWORD len = ict_ustrlen(filepath);
@@ -562,6 +628,9 @@ PRIVATE VOID _path_name(WORD* filepath, WORD* filename)
     }
 }
 
+/******************************************************************/
+/* translate long name to short name                              */
+/******************************************************************/
 PRIVATE VOID _lname_to_sname(WORD* lname, BYTE* sname)
 {
     DWORD len = _lname_real_length(lname);
@@ -587,6 +656,9 @@ PRIVATE VOID _lname_to_sname(WORD* lname, BYTE* sname)
     }
 }
 
+/******************************************************************/
+/* close a file by file pointer                                   */
+/******************************************************************/
 PRIVATE DWORD _lname_real_length(WORD* lname)
 {
     DWORD len = 0x0;
@@ -601,6 +673,9 @@ PRIVATE DWORD _lname_real_length(WORD* lname)
     return len;
 }
 
+/******************************************************************/
+/* fat32 checksum function                                        */
+/******************************************************************/
 PRIVATE BYTE _kfs_checksum(BYTE* sname)
 {
     DWORD i;
@@ -610,6 +685,9 @@ PRIVATE BYTE _kfs_checksum(BYTE* sname)
     return checksum;
 }
 
+/******************************************************************/
+/* create file use long name                                      */
+/******************************************************************/
 PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename, BYTE attr)
 {
     DWORD len = ict_ustrlen(filename);
@@ -642,6 +720,9 @@ PRIVATE DWORD _create_file_lname(DWORD dir_fat, WORD* filename, BYTE attr)
     }
 }
 
+/******************************************************************/
+/* create lname name entry and setup it                           */
+/******************************************************************/
 PRIVATE VOID _setup_lname_entry(LDIRENTRY* entry,DWORD number, WORD* filename, DWORD len, DWORD checksum)
 {
     DWORD i;
@@ -687,6 +768,9 @@ no_12_13:
         entry->filename_12_13[i] = 0xffff;
 }
 
+/******************************************************************/
+/* create file use short name                                     */
+/******************************************************************/
 PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename, BYTE attr)
 {
     DWORD start_fat;
@@ -700,6 +784,9 @@ PRIVATE DWORD _create_file_sname(SDIRENTRY* entry, BYTE* filename, BYTE attr)
     return TRUE;
 }
 
+/******************************************************************/
+/* alloc a free entry                                             */
+/******************************************************************/
 PRIVATE POINTER _alloc_entry(DWORD dir_fat, DWORD sum)
 {
     BYTE* item;
@@ -736,6 +823,9 @@ PRIVATE POINTER _alloc_entry(DWORD dir_fat, DWORD sum)
     return tmp_cluster;
 }
 
+/******************************************************************/
+/* find entry of file use short name                              */
+/******************************************************************/
 PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry)
 {
     DWORD tmp_fat_num = ROOT_FAT;
@@ -757,6 +847,9 @@ PRIVATE DWORD _find_file_sname(BYTE* filepath, SDIRENTRY* entry)
     return tmp_fat_num;
 }
 
+/******************************************************************/
+/* find entry of file use long name                               */
+/******************************************************************/
 PRIVATE DWORD _find_file_lname(WORD* filepath, SDIRENTRY* entry)
 {
     DWORD tmp_fat_num = ROOT_FAT;
@@ -778,6 +871,9 @@ PRIVATE DWORD _find_file_lname(WORD* filepath, SDIRENTRY* entry)
     return tmp_fat_num;
 }
 
+/******************************************************************/
+/* separate next directory name use short name                    */
+/******************************************************************/
 PRIVATE BYTE* _next_filepath_sname(BYTE* filepath)
 {
     while(*filepath != '/' && *filepath != '\0')
@@ -789,6 +885,9 @@ PRIVATE BYTE* _next_filepath_sname(BYTE* filepath)
     return ++filepath;
 }
 
+/******************************************************************/
+/* separate next directory name use long name                    */
+/******************************************************************/
 PRIVATE WORD* _next_filepath_lname(WORD* filepath)
 {
     while(*filepath != '/' && *filepath != '\0')
@@ -800,6 +899,9 @@ PRIVATE WORD* _next_filepath_lname(WORD* filepath)
     return ++filepath;
 }
 
+/******************************************************************/
+/* search file in directory use short name                        */
+/******************************************************************/
 PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY* entrybuff)
 {
     SDIRENTRY* item;
@@ -832,6 +934,9 @@ PRIVATE DWORD _search_file_in_dir_sname(DWORD fat_num, BYTE* filename, SDIRENTRY
     return FALSE; /* no such file */
 }
 
+/******************************************************************/
+/* search file in directory use long name                         */
+/******************************************************************/
 PRIVATE DWORD _search_file_in_dir_lname(DWORD fat_num, WORD* filename, SDIRENTRY* entrybuff)
 {
     LDIRENTRY* item;
@@ -872,6 +977,9 @@ PRIVATE DWORD _search_file_in_dir_lname(DWORD fat_num, WORD* filename, SDIRENTRY
     return FALSE; /* no such file */
 }
 
+/******************************************************************/
+/* setup short name to entry                                      */
+/******************************************************************/
 PRIVATE VOID _setup_sname(BYTE* filename, BYTE* sname)
 {
     DWORD len = ict_strlen(filename);
@@ -892,6 +1000,9 @@ PRIVATE VOID _setup_sname(BYTE* filename, BYTE* sname)
     }
 }
 
+/******************************************************************/
+/* put long name to long name entry                               */
+/******************************************************************/
 PRIVATE VOID _build_lname(LDIRENTRY* entry, WORD* lname)
 {
     DWORD num = entry->number & 0x1f;
@@ -906,6 +1017,9 @@ PRIVATE VOID _build_lname(LDIRENTRY* entry, WORD* lname)
         lname[num + i + 0xb] = entry->filename_12_13[i];
 }
 
+/******************************************************************/
+/* read/write a group of clusters                                 */
+/******************************************************************/
 PRIVATE DWORD _rw_cluster(DWORD cluster_num, BYTE* buff, DWORD sum, DWORD mode)
 {
     DWORD sector_num;
@@ -920,6 +1034,9 @@ PRIVATE DWORD _rw_cluster(DWORD cluster_num, BYTE* buff, DWORD sum, DWORD mode)
     return err;
 }
 
+/******************************************************************/
+/* get a group of clusters                                        */
+/******************************************************************/
 PRIVATE DWORD _cluster_string(DWORD *fat_num, DWORD maxlen)
 {
     DWORD sum = 0x0;
@@ -935,6 +1052,9 @@ PRIVATE DWORD _cluster_string(DWORD *fat_num, DWORD maxlen)
     return sum;
 }
 
+/******************************************************************/
+/* extend current cluster string                                  */
+/******************************************************************/
 PRIVATE DWORD _cluster_extend(DWORD fat_num, DWORD sum)
 {
     DWORD tmp_fat = fat_num;
@@ -944,6 +1064,9 @@ PRIVATE DWORD _cluster_extend(DWORD fat_num, DWORD sum)
     return alloc_sum;
 }
 
+/******************************************************************/
+/* alloc a idle cluster from file system                          */
+/******************************************************************/
 PRIVATE DWORD _cluster_alloc(DWORD start_fat, DWORD sum, DWORD mode)
 {
     DWORD tmp_fat = NULL;
@@ -989,6 +1112,9 @@ PRIVATE DWORD _cluster_alloc(DWORD start_fat, DWORD sum, DWORD mode)
     return NONE;
 }
 
+/******************************************************************/
+/* get next fat number                                            */
+/******************************************************************/
 PRIVATE DWORD _next_fat(DWORD fat_num)
 {
     if(fat_num == FAT_END)
@@ -998,6 +1124,9 @@ PRIVATE DWORD _next_fat(DWORD fat_num)
     return ((DWORD*)fatcache[cache_num].data)[fat_addr];
 }
 
+/******************************************************************/
+/* find or read a fat cache to memory                             */
+/******************************************************************/
 PRIVATE DWORD _fat_in_cache(DWORD fat_num)
 {
     DWORD fat_id =   fat_num & cache_mask;
@@ -1032,6 +1161,9 @@ PRIVATE DWORD _fat_in_cache(DWORD fat_num)
     return cache_num;
 }
 
+/******************************************************************/
+/* write a dirty fat block to hard disk                           */
+/******************************************************************/
 PRIVATE DWORD _writeback_fatblock(DWORD fatblock_num)
 {
     DWORD sector_num = fat1offset + fatcache[fatblock_num].id * 0x4 / SECTOR_SIZE;
@@ -1040,6 +1172,9 @@ PRIVATE DWORD _writeback_fatblock(DWORD fatblock_num)
     return TRUE;
 }
 
+/******************************************************************/
+/* write dirty fat cache to hard disk                             */
+/******************************************************************/
 PRIVATE DWORD _writeback_fatcache()
 {
     DWORD rst = TRUE;
@@ -1054,6 +1189,9 @@ PRIVATE DWORD _writeback_fatcache()
     return rst;
 }
 
+/******************************************************************/
+/* alloc a file discriptor                                        */
+/******************************************************************/
 PRIVATE DWORD _alloc_fdt()
 {
     DWORD i;
@@ -1063,6 +1201,9 @@ PRIVATE DWORD _alloc_fdt()
     return NONE;
 }
 
+/******************************************************************/
+/* release a file discriptor                                      */
+/******************************************************************/
 PRIVATE VOID _free_fdt(DWORD fd_num)
 {
     fdt[fd_num].fat = NULL;
@@ -1071,6 +1212,9 @@ PRIVATE VOID _free_fdt(DWORD fd_num)
     fdt[fd_num].offset = NULL;
 }
 
+/******************************************************************/
+/* alloc or get a file entry frome file entry table               */
+/******************************************************************/
 PRIVATE DWORD _alloc_febt(DWORD fatnum, DWORD entrynum)
 {
     DWORD i;
@@ -1093,6 +1237,9 @@ PRIVATE DWORD _alloc_febt(DWORD fatnum, DWORD entrynum)
     return NONE;
 }
 
+/******************************************************************/
+/* release a access of file entry block from file entry table     */
+/******************************************************************/
 PRIVATE VOID _free_febt(DWORD feb_num)
 {
     febt[feb_num].access--;
@@ -1104,6 +1251,9 @@ PRIVATE VOID _free_febt(DWORD feb_num)
     }
 }
 
+/******************************************************************/
+/* find a idle file discriptor link to this file                  */
+/******************************************************************/
 PRIVATE DWORD _link_to_fdpblock(DWORD kpid,DWORD fdnum)
 {
     DWORD i;

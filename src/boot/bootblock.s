@@ -1,5 +1,5 @@
 ;==============================================================================;
-;                             ictOS 1.00 Boot Block                            ;
+;                               ictOS Boot Block                               ;
 ;                                                                      by: ict ;
 ;==============================================================================;
 
@@ -368,7 +368,7 @@ BuffFATNumber:
     block_index         db  0x0
 
 DAP:
-    PacketSize          db  0x10    ; this always is 16 bytes
+    PacketSize          db  0x10    ; it always is 16 bytes
     Reserved            db  0x0
     BlockCount          dw  0x0
     BufferOffset        dw  0x0
